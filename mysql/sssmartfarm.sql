@@ -114,3 +114,8 @@ foreign key (device_id)
 references device(device_id)
 on update cascade
 on delete restrict;
+
+insert into device (device_name , device_serial) values ("테스트 장치" , "A4:CF:12:34:56:78");
+
+desc device;
+select * from device;
