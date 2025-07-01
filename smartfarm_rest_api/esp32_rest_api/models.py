@@ -11,7 +11,7 @@ class Device(models.Model) :
 
 class SensorData(models.Model) :
     device_id       = models.ForeignKey(
-        Device , on_delete = models.CASCADE , db_column = "device_id"   # class Device 에서 가져온 device_id 참조값을 SensorData 의 device_id 에 대입
+        Device , on_delete = models.RESTRICT , db_column = "device_id"   # class Device 에서 가져온 device_id 참조값을 SensorData 의 device_id 에 대입
     )
     measure_date    = models.DateTimeField()
     temperature     = models.FloatField()
