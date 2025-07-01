@@ -34,8 +34,13 @@ def receive_sensor_data(request) :
             "water_level"     : int(water) ,
         }
         
-        serializer = SensorDataSerializer(esp32_date = esp32_data)
-        if serializer.is_vaild() :
+        serializer = SensorDataSerializer(data = esp32_data)
+        if serializer.is_valid() :
             serializer.save()
             return Response({"message" : "Success"} , status = status.HTTP_201_CREATED)
+        else :
+            return Response(serializer.errors , status = status.HTTP_400_BAD_REQUEST)
+    
+    except Exception as err :
+        return Response({"error" : str(err)} , status = status.HTTP_400_BAD_REQUEST)
         
