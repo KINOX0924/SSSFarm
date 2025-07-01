@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>스마트 재배기 - 식물 성장 갤러리</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f8fb;
+      color: #333;
+    }
+    header {
+      background-color: #1c8adb;
+      padding: 20px;
+      color: white;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 40px auto;
+      background-color: #fff;
+      padding: 24px 32px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      margin-top: 0;
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 24px;
+    }
+    .filter-controls {
+      margin-bottom: 20px;
+    }
+    .filter-controls label,
+    .filter-controls input,
+    .filter-controls select {
+      font-size: 15px;
+      margin-right: 10px;
+    }
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+    }
+    .gallery-item {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fafafa;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      position: relative;
+    }
+    .gallery-item img {
+      width: 100%;
+      display: block;
+      height: 140px;
+      object-fit: cover;
+    }
+    .caption {
+      padding: 8px 10px;
+      font-size: 14px;
+      color: #555;
+      text-align: center;
+    }
+    .delete-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>🌱 식물 성장 갤러리</header>
+
+<div class="container">
+  <h2>시간별 성장 사진 보기</h2>
+  <div class="filter-controls">
+    <label for="interval">시간 필터:</label>
+    <select id="interval" onchange="renderPhotos()">
+      <option value="all">전체</option>
+      <option value="1">1시간 간격</option>
+      <option value="6">6시간 간격</option>
+      <option value="12">12시간 간격</option>
+      <option value="24">1일 간격</option>
+      <option value="72">3일 간격</option>
+      <option value="168">7일 간격</option>
+    </select>
+  </div>
+  <div class="gallery-grid" id="galleryGrid"></div>
+</div>
+
+<script>
+  let photos = [
+    { src: 'https://picsum.photos/id/1011/600/400', datetime: '2025-06-30 00:00' },
+    { src: 'https://picsum.photos/id/1012/600/400', datetime: '2025-06-30 01:00' },
+    { src: 'https://picsum.photos/id/1013/600/400', datetime: '2025-06-30 03:00' },
+    { src: 'https://picsum.photos/id/1014/600/400', datetime: '2025-06-30 06:00' },
+    { src: 'https://picsum.photos/id/1015/600/400', datetime: '2025-06-30 09:00' },
+    { src: 'https://picsum.photos/id/1016/600/400', datetime: '2025-06-30 12:00' },
+    { src: 'https://picsum.photos/id/1017/600/400', datetime: '2025-06-30 15:00' },
+    { src: 'https://picsum.photos/id/1018/600/400', datetime: '2025-06-30 18:00' },
+    { src: 'https://picsum.photos/id/1019/600/400', datetime: '2025-06-30 21:00' },
+  ];
+
+  function renderPhotos() {
+    const interval = document.getElementById('interval').value;
+    const container = document.getElementById('galleryGrid');
+    container.innerHTML = '';
+
+    const filtered = photos.filter((photo, index) => {
+      if (interval === 'all') return true;
+      const hour = parseInt(photo.datetime.split(' ')[1].split(':')[0]);
+      return (photoIndexByDatetime(photo.datetime) % parseInt(interval)) === 0;
+    });
+
+    filtered.forEach((photo) => {
+      const div = document.createElement('div');
+      div.className = 'gallery-item';
+      div.innerHTML = `
+        <button class="delete-btn" onclick="deletePhoto('${photo.datetime}')">×</button>
+        <img src="${photo.src}" alt="사진" />
+        <div class="caption">${photo.datetime}</div>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function photoIndexByDatetime(datetime) {
+    return photos.findIndex(p => p.datetime === datetime);
+  }
+
+  function deletePhoto(datetime) {
+    if (confirm(`${datetime} 사진을 삭제하시겠습니까?`)) {
+      photos = photos.filter(p => p.datetime !== datetime);
+      renderPhotos();
+    }
+  }
+
+  renderPhotos();
+</script>
+
+</body>
+</html>

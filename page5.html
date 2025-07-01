@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>스마트 재배기 - 로그 확인</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f8fb;
+      color: #333;
+    }
+    header {
+      background-color: #1c8adb;
+      padding: 20px;
+      color: white;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      background-color: #fff;
+      padding: 24px 32px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      margin-top: 0;
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 24px;
+    }
+    label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    input[type="date"] {
+      padding: 8px 12px;
+      font-size: 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-right: 12px;
+      width: 160px;
+    }
+    button.btn {
+      background-color: #1c8adb;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+    button.btn:hover {
+      background-color: #1479c9;
+    }
+    .log-list {
+      margin-top: 30px;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    .log-list th, .log-list td {
+      border: 1px solid #ddd;
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 15px;
+    }
+    .log-list th {
+      background-color: #eaf3ff;
+      font-weight: 700;
+    }
+    .no-logs {
+      text-align: center;
+      margin: 40px 0;
+      color: #666;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+<header>📋 로그 확인</header>
+
+<div class="container">
+  <h2>기간별 로그 조회</h2>
+  <form id="logFilterForm" onsubmit="return false;">
+    <label for="startDate">시작 날짜</label>
+    <input type="date" id="startDate" />
+    <label for="endDate">종료 날짜</label>
+    <input type="date" id="endDate" />
+    <button class="btn" onclick="filterLogs()">조회</button>
+  </form>
+
+  <table class="log-list" id="logTable">
+    <thead>
+      <tr>
+        <th>📅 날짜/시간</th>
+        <th>🛠 작동 장비</th>
+        <th>⚡ 트리거 원인</th>
+        <th>🔄 작동 상태</th>
+      </tr>
+    </thead>
+    <tbody id="logTableBody"></tbody>
+  </table>
+  <div class="no-logs" id="noLogsMsg" style="display:none;">해당 기간에 로그가 없습니다.</div>
+</div>
+
+<script>
+  const logs = [
+    {
+      datetime: '2025-06-30 07:00',
+      device: '온도 센서',
+      trigger: '온도 31℃ 초과',
+      action: '펌프1 가동됨'
+    },
+    {
+      datetime: '2025-06-30 08:30',
+      device: '조명',
+      trigger: '조도 180lux 이하',
+      action: '조명 켜짐'
+    },
+    {
+      datetime: '2025-06-30 12:00',
+      device: '급수기',
+      trigger: '예약 시간 도달',
+      action: '펌프1 중단됨'
+    }
+  ];
+
+  const logTableBody = document.getElementById('logTableBody');
+  const noLogsMsg = document.getElementById('noLogsMsg');
+
+  function renderLogs(filteredLogs) {
+    logTableBody.innerHTML = '';
+    if (filteredLogs.length === 0) {
+      noLogsMsg.style.display = 'block';
+      return;
+    }
+    noLogsMsg.style.display = 'none';
+    filteredLogs.forEach(log => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${log.datetime}</td>
+        <td>${log.device}</td>
+        <td>${log.trigger}</td>
+        <td>${log.action}</td>
+      `;
+      logTableBody.appendChild(tr);
+    });
+  }
+
+  renderLogs(logs);
+
+  function filterLogs() {
+    const start = document.getElementById('startDate').value;
+    const end = document.getElementById('endDate').value;
+
+    if (!start || !end) {
+      alert('시작 날짜와 종료 날짜를 모두 선택해주세요.');
+      return;
+    }
+    if (start > end) {
+      alert('시작 날짜가 종료 날짜보다 늦을 수 없습니다.');
+      return;
+    }
+
+    const filtered = logs.filter(log => {
+      const logDate = log.datetime.split(' ')[0];
+      return logDate >= start && logDate <= end;
+    });
+    renderLogs(filtered);
+  }
+</script>
+
+</body>
+</html>

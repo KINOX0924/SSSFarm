@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>스마트 재배기 - 프리셋 설정</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f8fb;
+    }
+    header {
+      background-color: #1c8adb;
+      padding: 20px;
+      color: white;
+      text-align: center;
+      font-size: 24px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background-color: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    .form-group {
+      margin-bottom: 30px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .range-values {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 14px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #222;
+    }
+    #tempSlider, #humiditySlider {
+      margin-top: 20px;
+    }
+    .btn {
+      background-color: #1c8adb;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    .btn:hover {
+      background-color: #1479c9;
+    }
+    .preset-list {
+      margin-top: 40px;
+    }
+    .preset-item {
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .preset-name {
+      font-weight: 600;
+    }
+    .options-extra {
+      margin-top: 20px;
+      padding: 15px;
+      background: #eef6ff;
+      border-radius: 10px;
+    }
+    .options-extra label {
+      font-weight: bold;
+      display: block;
+      margin: 10px 0 6px;
+    }
+    select, input[type="time"], input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    hr {
+      margin: 20px 0;
+      border: none;
+      border-top: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <header>🌱 프리셋 설정</header>
+  <div class="container">
+    <h2>새 프리셋 추가</h2>
+    <div class="form-group">
+      <label for="presetName">프리셋 이름</label>
+      <input type="text" id="presetName" placeholder="예: 여름모드" />
+    </div>
+
+    <div class="form-group">
+      <label>온도 범위 (℃)</label>
+      <div id="tempSlider"></div>
+      <div class="range-values">
+        <span id="tempMinVal">15℃</span>
+        <span id="tempMaxVal">30℃</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>습도 범위 (%)</label>
+      <div id="humiditySlider"></div>
+      <div class="range-values">
+        <span id="humidityMinVal">40%</span>
+        <span id="humidityMaxVal">70%</span>
+      </div>
+    </div>
+
+    <div class="options-extra">
+      <label>조명 작동 조건</label>
+
+      <label>1. 시간대별 작동</label>
+      <label for="startTime">작동 시작 시간</label>
+      <input type="time" id="startTime" value="06:00" />
+      <label for="endTime">작동 종료 시간</label>
+      <input type="time" id="endTime" value="18:00" />
+
+      <hr />
+
+      <label>2. 조도 이하 시 작동</label>
+      <label for="lightThreshold">조도 이하 작동 기준 (lux)</label>
+      <input type="number" id="lightThreshold" min="0" max="1000" value="300" />
+    </div>
+
+    <button class="btn">프리셋 저장</button>
+
+    <div class="preset-list">
+      <h2>저장된 프리셋</h2>
+      <div class="preset-item">
+        <span class="preset-name">여름모드</span>
+        <button class="btn">불러오기</button>
+      </div>
+      <div class="preset-item">
+        <span class="preset-name">겨울모드</span>
+        <button class="btn">불러오기</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js"></script>
+  <script>
+    function createDualSlider(id, min, max, start, unit, minDisplayId, maxDisplayId) {
+      const slider = document.getElementById(id);
+      noUiSlider.create(slider, {
+        start,
+        connect: true,
+        range: { min, max },
+        step: 1,
+        behaviour: 'tap-drag'
+      });
+      slider.noUiSlider.on('update', function (values) {
+        document.getElementById(minDisplayId).textContent = Math.round(values[0]) + unit;
+        document.getElementById(maxDisplayId).textContent = Math.round(values[1]) + unit;
+      });
+    }
+
+    createDualSlider("tempSlider", 0, 50, [15, 30], "℃", "tempMinVal", "tempMaxVal");
+    createDualSlider("humiditySlider", 0, 100, [40, 70], "%", "humidityMinVal", "humidityMaxVal");
+  </script>
+</body>
+</html>

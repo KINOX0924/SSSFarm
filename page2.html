@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>스마트 재배기 - 대시보드</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f8fb;
+    }
+    header {
+      background-color: #1c8adb;
+      padding: 20px;
+      color: white;
+      text-align: center;
+      font-size: 24px;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+    .card {
+      background-color: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      padding: 20px;
+    }
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 18px;
+    }
+    .toggle-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .log-section {
+      margin-top: 20px;
+    }
+    .log-entry {
+      font-size: 14px;
+      border-bottom: 1px solid #eee;
+      padding: 6px 0;
+    }
+  </style>
+</head>
+<body>
+  <header>🌱 스마트 재배기 대시보드</header>
+
+  <div class="container">
+    <div class="card">
+      <h3>온도 센서</h3>
+      <canvas id="tempChart"></canvas>
+    </div>
+    <div class="card">
+      <h3>습도 센서</h3>
+      <canvas id="humidityChart"></canvas>
+    </div>
+    <div class="card">
+      <h3>토양 수분</h3>
+      <canvas id="waterChart"></canvas>
+    </div>
+    <div class="card">
+      <h3>조도 센서</h3>
+      <canvas id="lightChart"></canvas>
+    </div>
+    <div class="card">
+      <h3>기능 제어</h3>
+      <div class="toggle-group">
+        <span>물 주기</span>
+        <button>ON/OFF</button>
+      </div>
+      <div class="toggle-group">
+        <span>LED 조명</span>
+        <button>ON/OFF</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>경고 알림</h3>
+      <ul>
+        <li>🌡️ 온도 35도 초과</li>
+        <li>💧 토양 수분 부족</li>
+      </ul>
+    </div>
+    <div class="card log-section">
+      <h3>이벤트 로그</h3>
+      <div class="log-entry">[10:12] 물 주기 작동</div>
+      <div class="log-entry">[09:50] LED 조명 켜짐</div>
+      <div class="log-entry">[08:45] 온도 경고 발생</div>
+    </div>
+  </div>
+
+  <script>
+    const createChart = (id, label, data, color) => {
+      new Chart(document.getElementById(id), {
+        type: 'line',
+        data: {
+          labels: ['00시', '06시', '12시', '18시', '24시'],
+          datasets: [{
+            label,
+            data,
+            borderColor: color,
+            backgroundColor: color + '33',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    };
+
+    createChart('tempChart', '온도 (℃)', [22, 24, 28, 30, 26], '#ff6384');
+    createChart('humidityChart', '습도 (%)', [60, 55, 50, 45, 52], '#36a2eb');
+    createChart('waterChart', '토양 수분 (%)', [70, 60, 55, 50, 65], '#4bc0c0');
+    createChart('lightChart', '조도 (lux)', [200, 400, 600, 800, 500], '#ffcd56');
+  </script>
+</body>
+</html>
