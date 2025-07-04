@@ -29,7 +29,7 @@ class User(Base) :
     position_id = Column(Integer , ForeignKey("position.position_id"))
     
     # 속함
-    position = relationship("Position" , back_populates = "users")   # 사용자가 하나의 포지션에 속한다는 관계 정의
+    position = relationship("Position" , back_populates = "users")       # 사용자가 하나의 포지션에 속한다는 관계 정의
     
     # 가짐
     user_presets = relationship("UserPreset" , back_populates = "user")  # 사용자가 여러 유저 프리셋을 가질 수 있다는 관계 정의
@@ -50,8 +50,8 @@ class Device(Base) :
     position     = relationship("Position" , back_populates = "devices")     # 기기가 하나의 포지션에 속한다는 관계 정의
     user_preset  = relationship("UserPreset" , back_populates = "devices")   # 기기가 하나의 유저 프리셋에 속한다는 관계 정의
     plant_preset = relationship("PlantPreset" , back_populates = "devices")  # 기기가 하나의 개발 프리셋에 속한다는 관계 정의
-    sensor_data  = relationship("SensorData" , back_populates = "device")   # 기기가 하나의 센서 데이터에 속한다는 관계 정의
-    action_logs  = relationship("ActionLog" , back_populates = "device")    # 기기가 하나의 동작 로그에 속한다는 관계 정의
+    sensor_data  = relationship("SensorData" , back_populates = "device")    # 기기가 하나의 센서 데이터에 속한다는 관계 정의
+    action_logs  = relationship("ActionLog" , back_populates = "device")     # 기기가 하나의 동작 로그에 속한다는 관계 정의
     
     # 가짐
 
