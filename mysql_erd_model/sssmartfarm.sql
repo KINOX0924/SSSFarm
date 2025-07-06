@@ -1,4 +1,9 @@
 use sssmartfarm;
+select * from position;
+select * from user;
+select * from device;
+select * from userpreset;
+select * from sensordata;
 create table position (
 	position_id int auto_increment primary key ,
     position_name varchar(50) unique Not null
@@ -17,7 +22,16 @@ create table device (
     location varchar(255) ,
     user_preset_id int ,
     plant_preset_id int ,
-    last_active datetime
+    last_active datetime ,
+    target_led_state varchar(10) ,
+    target_pump_state_1 varchar(10) ,
+    target_pump_state_2 varchar(10) ,
+    target_fan_state varchar(10) ,
+    alert_led_state varchar(10) ,
+    override_led_state varchar(10) ,
+    override_pump_state_1 varchar(10) ,
+    override_pump_state_2 varchar(10) ,
+    override_fan_state varchar(10)
 );
 create table sensordata (
 	measure_id bigint auto_increment primary key ,

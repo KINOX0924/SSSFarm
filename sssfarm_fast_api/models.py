@@ -2,7 +2,7 @@
 구성한 ERD 를 그대로 코드로 옮기는 파일
 """
 
-from sqlalchemy import (Column , Integer , String , Text , DECIMAL , FLOAT , DATETIME, ForeignKey , BIGINT)
+from sqlalchemy import (CheckConstraint , Column , Integer , String , Text , DECIMAL , FLOAT , DATETIME, ForeignKey , BIGINT)
 from sqlalchemy.orm import relationship
 from .data_pipe import Base
 
@@ -42,9 +42,28 @@ class Device(Base) :
     device_name     = Column(String(100) , unique = True)
     device_serial   = Column(String(50) , unique = True , nullable = False)
     location        = Column(String(255))
-    user_preset_id  = Column(Integer , ForeignKey("userpreset.preset_id"))
-    plant_preset_id = Column(Integer , ForeignKey("plantpreset.plant_preset_id"))
+    user_preset_id  = Column(Integer , ForeignKey("userpreset.preset_id") , nullable = True)
+    plant_preset_id = Column(Integer , ForeignKey("plantpreset.plant_preset_id") , nullable = True)
     last_active     = Column(DATETIME)
+    
+    # 실시간 제어를 위한 상태 관리 필드들
+    target_led_state    = Column(String(10) , default = "OFF")
+    target_pump_state_1 = Column(String(10) , default = "OFF")
+    target_pump_state_2 = Column(String(10) , default = "OFF")
+    target_fan_state    = Column(String(10) , default = "OFF")
+    alert_led_state     = Column(String(10) , default = "OFF")
+    
+    # 사용자 수동 제어 상태 관리 필드들
+    override_led_state    = Column(String(10) , nullable = True , default = None)
+    override_pump_state_1 = Column(String(10) , nullable = True , default = None)
+    override_pump_state_2 = Column(String(10) , nullable = True , default = None)
+    override_fan_state    = Column(String(10) , nullable = True , default = None)
+    
+    # 테이블 제약 조건
+    # 기기가 user_preset_id 또는 plant_preset_id 중 어느 하나만 적용되도록 하기 위해 제약 조건을 거는 코드
+    __table_args__ = (
+        CheckConstraint("user_preset_id IS NULL or plant_preset_id IS NULL" , name = "chk_one_preset_at_most") ,
+    )
     
     # 속함
     position     = relationship("Position" , back_populates = "devices")     # 기기가 하나의 포지션에 속한다는 관계 정의

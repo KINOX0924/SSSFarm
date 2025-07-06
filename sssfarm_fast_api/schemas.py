@@ -36,7 +36,7 @@ class UserBase(BaseModel) :
     position_id : Optional[int] = None
     
 class UserCreate(UserBase) :
-    password : int
+    password : str
 
 class User(UserBase) :
     user_id  : int
@@ -90,7 +90,7 @@ class PlantPresetBase(BaseModel) :
     light_start_hour           : Optional[int] = None
     light_end_hour             : Optional[int] = None
 
-class PlantPreserCreate(PlantPresetBase) :
+class PlantPresetCreate(PlantPresetBase) :
     pass
 
 class PlantPreset(PlantPresetBase) :
@@ -152,6 +152,12 @@ class DeviceCreate(DeviceBase) :
     user_preset_id  : Optional[int] = None
     plant_preset_id : Optional[int] = None
 
+# 장치 메뉴얼 작동(수동 작동) 스키마
+class ManualControlRequest(BaseModel) :
+    # 제어 컴포넌트 이름 : pump_1 , pump_2 , fan , led
+    component : str
+    command   : str
+
 class Device(DeviceBase) :  # 가장 복잡하고 많은 정보를 보여주는 Device 조회용 스키마
     device_id     : int
     device_serial : str
@@ -166,6 +172,15 @@ class Device(DeviceBase) :  # 가장 복잡하고 많은 정보를 보여주는 
     
     class Config :
         from_attributes = True
+
+
+# ESP32 아두이노가 자신의 제어 상태를 받아갈 때 사용할 스키마 설정
+class DeviceControlStatus(BaseModel) :
+    target_led_state    : str
+    target_pump_state_1 : str
+    target_pump_state_2 : str
+    target_fan_state    : str
+    alert_led_state     : str
 
 # class Config : from_attributes = True
 # SQLAlchemt 로 조회한 DB 모델 객체를 Pydantic 스키마로 변환할 때 , 객체의 속성으로 값에 접근하여 데이터를 읽어오도록 허용하는 옵션
