@@ -1,9 +1,4 @@
 use sssmartfarm;
-select * from position;
-select * from user;
-select * from device;
-select * from userpreset;
-select * from sensordata;
 create table position (
 	position_id int auto_increment primary key ,
     position_name varchar(50) unique Not null
