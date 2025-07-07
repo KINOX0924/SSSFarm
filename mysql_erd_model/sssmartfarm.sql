@@ -87,3 +87,11 @@ alter table device add constraint fk_device_plantpresetid foreign key (plant_pre
 alter table sensordata add constraint fk_sensordata_deviceid foreign key (device_id) references device (device_id);
 alter table actionlog add constraint fk_actionlog_deviceid foreign key (device_id) references device (device_id);
 alter table userpreset add constraint fk_userpreset_userid foreign key (user_id) references user (user_id);
+
+select * from actionlog;
+select * from device;
+select * from plantpreset;
+select * from position;
+select * from sensordata;
+select * from user;
+select * from userpreset;
