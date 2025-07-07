@@ -172,12 +172,12 @@ def manual_control_device(device_id : int , control_data : schemas.ManualControl
 
 # ESP32(장치) 연결 엔드포인트
 # ESP32 또는 IOT 장치가 센서 데이터를 서버로 전송하는 엔드 포인트
-@app.post("/sensordata/" , response_model = schemas.SensorData , tags = ["스마트팜 장치 데이터 통신"] , summary = "센서 데이터 수신")
+@app.post("/sensordata/" , response_model = schemas.SensorData , tags = ["GetData"] , summary = "센서 데이터 수신")
 def create_sensor_data(data : schemas.SensorDataCreate , db : Session = Depends(get_database)) :
     return crud.create_sensor_data( db = db , data = data)
 
 # ESP32 또는 IOT 장치가 목표 제어 상태(명령) 을 서버로부터 받아가는 엔드 포인트
-@app.get("/devices/{device_id}/control_status" , response_model = schemas.DeviceControlStatus , tags = ["스마트팜 장치 명령 송신"] , summary = "명령 데이터 송신")
+@app.get("/devices/{device_id}/control_status" , response_model = schemas.DeviceControlStatus , tags = ["SendCommand"] , summary = "명령 데이터 송신")
 def get_device_control_status(device_id : int , db : Session = Depends(get_database)) :
     device = crud.get_device(db , device_id = device_id)
     
