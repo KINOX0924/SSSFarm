@@ -90,6 +90,10 @@ def get_device(db : Session , device_id : int) :
 def get_device_by_devicename(db : Session , device_name : str) :
     return db.query(models.Device).filter(models.Device.device_name == device_name).first()
 
+# device_serial 로 특정 장치를 조회
+def get_device_by_serial(db : Session , serial : str) :
+    return db.query(models.Device).filter(models.Deivce.device_serial == serial).fiset()
+
 # 모든 장치 목록을 조회
 def get_devices(db : Session , skip : int = 0 , limit : int = 100) :
     return db.query(models.Device).offset(skip).limit(limit).all()
@@ -161,12 +165,23 @@ def set_manual_override(db : Session , device_id : int , control_data : schemas.
 # SENSOR CRUD
 # sensor 데이터를 생성(저장)
 def create_sensor_data(db : Session , data : schemas.SensorDataCreate) :
-    device = get_device(db , device_id = data.device_id)
+    device = get_device_by_serial(db , serial = data.device_serial)
     
     if device :
         device.last_active = datetime.utcnow()
+    else :
+        return None
         
-    db_data = models.SensorData(**data.model_dump() , measure_date = datetime.utcnow())
+    db_data = models.SensorData(
+        device_id = device.device_id ,
+        temperature = data.temperature ,
+        humidity = data.humidity ,
+        soil_moisture_1 = data.soil_moisture_1 ,
+        soil_moisture_2 = data.soil_moisture_2 ,
+        light_level = data.light_level ,
+        water_level = data.water_level ,
+        measure_date = datetime.utcnow()
+    )
     db.add(db_data)
     db.commit()
     db.refresh(db_data)

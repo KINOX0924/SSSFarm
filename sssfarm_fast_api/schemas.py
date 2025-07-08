@@ -127,7 +127,7 @@ class SensorDataBase(BaseModel) :
     water_level     : Optional[int] = None
 
 class SensorDataCreate(SensorDataBase) :
-    device_id : int
+    device_serial : str
 
 class SensorData(SensorDataBase) :
     measure_id   : int

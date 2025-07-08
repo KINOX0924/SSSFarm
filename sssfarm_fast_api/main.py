@@ -174,7 +174,10 @@ def manual_control_device(device_id : int , control_data : schemas.ManualControl
 # ESP32 또는 IOT 장치가 센서 데이터를 서버로 전송하는 엔드 포인트
 @app.post("/sensordata/" , response_model = schemas.SensorData , tags = ["GetData"] , summary = "센서 데이터 수신")
 def create_sensor_data(data : schemas.SensorDataCreate , db : Session = Depends(get_database)) :
-    return crud.create_sensor_data( db = db , data = data)
+    db_data = crud.create_sensor_data(db = db , data = data)
+    if db_data :
+        raise HTTPException(status_code = 404 , detail = "등록되지 않은 시리얼 번호의 장치입니다.")
+    return db_data
 
 # ESP32 또는 IOT 장치가 목표 제어 상태(명령) 을 서버로부터 받아가는 엔드 포인트
 @app.get("/devices/{device_id}/control_status" , response_model = schemas.DeviceControlStatus , tags = ["SendCommand"] , summary = "명령 데이터 송신")
