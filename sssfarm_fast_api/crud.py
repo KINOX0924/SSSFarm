@@ -14,6 +14,7 @@ Delete : 데이터 삭제
 """
 
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from datetime import datetime
 from . import models , schemas , auth
 
@@ -92,7 +93,8 @@ def get_device_by_devicename(db : Session , device_name : str) :
 
 # device_serial 로 특정 장치를 조회
 def get_device_by_serial(db : Session , serial : str) :
-    return db.query(models.Device).filter(models.Deivce.device_serial == serial).fiset()
+    return db.query(models.Device).filter(func.trim(models.Device.device_serial) == serial.strip()).first()
+# 좌우 공백 제거를 통해 혹시라도 발생할 수 있는 오류를 차단
 
 # 모든 장치 목록을 조회
 def get_devices(db : Session , skip : int = 0 , limit : int = 100) :
@@ -168,7 +170,7 @@ def create_sensor_data(db : Session , data : schemas.SensorDataCreate) :
     device = get_device_by_serial(db , serial = data.device_serial)
     
     if device :
-        device.last_active = datetime.utcnow()
+        device.last_active = datetime.now()
     else :
         return None
         
@@ -180,7 +182,7 @@ def create_sensor_data(db : Session , data : schemas.SensorDataCreate) :
         soil_moisture_2 = data.soil_moisture_2 ,
         light_level = data.light_level ,
         water_level = data.water_level ,
-        measure_date = datetime.utcnow()
+        measure_date = datetime.now()
     )
     db.add(db_data)
     db.commit()
@@ -229,7 +231,7 @@ def get_plant_preset(db : Session , plant_preset_id : int) :
 # ACTIONLOG CRUD
 # 작동 로그 생성(저장)
 def create_action_log(db : Session , action : schemas.ActionLogCreate) :
-    db_action = models.ActionLog(**action.model_dump() , action_time=datetime.utcnow())
+    db_action = models.ActionLog(**action.model_dump() , action_time=datetime.now())
     db.add(db_action)
     db.commit()
     db.refresh(db_action)

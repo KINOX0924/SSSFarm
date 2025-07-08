@@ -6,7 +6,7 @@ API 엔드포인드(경로) 정의
 백그라운드 작업 스케쥴리
 """
 
-from fastapi import FastAPI , Depends , HTTPException , status
+from fastapi import FastAPI , Depends , HTTPException , status , WebSocket , WebSocketDisconnect
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List , Optional
@@ -173,10 +173,13 @@ def manual_control_device(device_id : int , control_data : schemas.ManualControl
 # ESP32(장치) 연결 엔드포인트
 # ESP32 또는 IOT 장치가 센서 데이터를 서버로 전송하는 엔드 포인트
 @app.post("/sensordata/" , response_model = schemas.SensorData , tags = ["GetData"] , summary = "센서 데이터 수신")
-def create_sensor_data(data : schemas.SensorDataCreate , db : Session = Depends(get_database)) :
+async def create_sensor_data(data : schemas.SensorDataCreate , db : Session = Depends(get_database)) :
     db_data = crud.create_sensor_data(db = db , data = data)
-    if db_data :
+    if db_data is None :
         raise HTTPException(status_code = 404 , detail = "등록되지 않은 시리얼 번호의 장치입니다.")
+    
+    response_data = schemas.SensorData.from_orm(db_data)
+    await manager.broadcast(response_data.model_dump_json())
     return db_data
 
 # ESP32 또는 IOT 장치가 목표 제어 상태(명령) 을 서버로부터 받아가는 엔드 포인트
@@ -194,6 +197,39 @@ def get_device_control_status(device_id : int , db : Session = Depends(get_datab
         target_fan_state    = device.target_fan_state ,
         alert_led_state     = device.alert_led_state
     )
+    
+    
+# 웹소켓 연결 관리자
+# 프론트엔드에 실시간으로 센서데이터를 전달해주기 위한 클래스
+class ConnectionManager :
+    def __init__(self) :
+        self.active_connections : list[WebSocket] = []
+    
+    async def connect(self , websocket : WebSocket) :
+        await websocket.accept()
+        self.active_connections.append(websocket)
+    
+    def disconnect(self , websocket : WebSocket) :
+        self.active_connections.remove(websocket)
+    
+    async def broadcast(self , message : str) :
+        # 연결된 모든 클라이언트에게 메시지 전송 함수
+        for connection in self.active_connections :
+            await connection.send_text(message)
+
+manager = ConnectionManager()
+
+# 웹소켓 엔드포인트
+@app.websocket("/ws")
+async def websocket_endpoint(websocket : WebSocket) :
+    # 클라이언트가 접속하면 관리자에 클라이언트 추가
+    await manager.connect(websocket)
+    try :
+        while True :
+            # 클라이언트로부터 메시지 대기
+            await websocket.receive_text()
+    except WebSocketDisconnect :
+        manager.disconnect(websocket)
 
 
 # 기타 엔드포인트

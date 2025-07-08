@@ -27,7 +27,6 @@ sessionmaker : 데이터베이스와의 모든 상호작용(읽기 , 쓰기 , �
     이 클래스를 호출하여 필요할 때마다 새로운 세션 객체를 얻을 수 있음
 """
 
-
 # MySQL 데이터베이스와 연결하는 주소를 가져옴
 # mysql+pymysql://사용자아이디:비밀번호:호스트명:포트번호/DB스키마명 
 MY_SQL_DB_URL = "mysql+pymysql://root:1234@localhost:3306/sssmartfarm"
