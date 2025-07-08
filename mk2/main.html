@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>스마트 재배기 - 대시보드</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- 상단 네비게이션 -->
+  <nav class="navbar">
+    <div class="logo">SSSFarm</div>
+    <ul>
+      <li><a href="#">대시보드</a></li>
+      <li><a href="#">프리셋</a></li>
+      <li><a href="#">갤러리</a></li>
+      <li><a href="#">로그</a></li>
+      <li><a href="#">로그아웃</a></li>
+    </ul>
+  </nav>
+
+  <!-- 기기 탭 -->
+  <div class="device-tabs">
+    <div class="tab active" onclick="switchDevice(0)">기기 1</div>
+    <div class="tab" onclick="switchDevice(1)">기기 2</div>
+    <div class="tab add-tab">+</div>
+  </div>
+
+  <!-- 메인 컨테이너 -->
+  <div class="main-container">
+    <!-- 상태 카드 2x3 -->
+    <div class="dashboard-grid" id="dashboardGrid"></div>
+
+    <!-- 리모콘 제어 패널 -->
+    <div class="remote-control">
+      <h3>🎮 리모컨 제어</h3>
+      <div class="control-row">
+        <span>💡 조명</span>
+        <button class="control-btn" onclick="toggle(this)">OFF</button>
+      </div>
+      <div class="control-row">
+        <span>💧 물 펌프</span>
+        <button class="control-btn" onclick="toggle(this)">OFF</button>
+      </div>
+      <div class="control-row">
+        <span>🌬 팬</span>
+        <button class="control-btn" onclick="toggle(this)">OFF</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const devices = [
+      {
+        name: '기기 1',
+        data: {
+          temp: '24℃', humidity: '55%', soil: '62%', light: '320 lux', water: 70,
+          logs: ['[10:15] 물 주기 시작', '[09:50] LED 꺼짐']
+        }
+      },
+      {
+        name: '기기 2',
+        data: {
+          temp: '28℃', humidity: '48%', soil: '58%', light: '410 lux', water: 50,
+          logs: ['[09:30] 펌프 작동', '[08:10] 조도 부족 감지']
+        }
+      }
+    ];
+
+    function switchDevice(index) {
+      document.querySelectorAll('.tab').forEach((tab, i) => {
+        if (tab.classList.contains('add-tab')) return;
+        tab.classList.toggle('active', i === index);
+      });
+
+      const container = document.getElementById('dashboardGrid');
+      const d = devices[index].data;
+      container.innerHTML = `
+        <div class="card"><h3>온도</h3><div class="value-text">${d.temp}</div></div>
+        <div class="card"><h3>습도</h3><div class="value-text">${d.humidity}</div></div>
+        <div class="card"><h3>토양 수분</h3><div class="value-text">${d.soil}</div></div>
+        <div class="card"><h3>조도</h3><div class="value-text">${d.light}</div></div>
+        <div class="card">
+          <h3>물 잔량</h3>
+          <div class="water-bottle"><div class="water-fill" style="height:${d.water}%;"></div></div>
+          <div class="water-percent">${d.water}%</div>
+        </div>
+        <div class="card">
+          <h3>이벤트 로그</h3>
+          ${d.logs.map(log => `<div class="log-entry">${log}</div>`).join('')}
+        </div>
+      `;
+    }
+
+    function toggle(btn) {
+      const isOn = btn.textContent === 'ON';
+      btn.textContent = isOn ? 'OFF' : 'ON';
+      btn.classList.toggle('active', !isOn);
+    }
+
+    switchDevice(0);
+  </script>
+</body>
+</html>
