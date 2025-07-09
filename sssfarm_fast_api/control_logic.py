@@ -19,6 +19,10 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         print(f"[에러] | {device_id} 를 가진 장치를 찾을 수 없음")
         return
     
+    # 장치 타입이 SENSOR_ACTUATOR 가 아니면 제어 로직을 실행하지 않고 즉시 종료
+    if device.device_type != "SENSOR_ACTUATOR" :
+        return
+    
     # 가져온 장치에서 최신 데이터 정보를 가져옴
     # 장치의 최신 데이터 정보가 없는 경우를 상정한 예외 처리 진행
     latest_data = crud.get_latest_sensor_data(db , device_id = device_id)

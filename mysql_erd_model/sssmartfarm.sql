@@ -17,6 +17,7 @@ create table device (
     location varchar(255) ,
     user_preset_id int ,
     plant_preset_id int ,
+    device_type varchar(50) Not null ,
     last_active datetime ,
     target_led_state varchar(10) ,
     target_pump_state_1 varchar(10) ,
@@ -102,3 +103,4 @@ select * from position;
 select * from sensordata;
 select * from user;
 select * from userpreset;
+select * from plantimage;

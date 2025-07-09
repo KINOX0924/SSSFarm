@@ -162,6 +162,7 @@ class PlantImage(PlantImageBase) :
 class DeviceBase(BaseModel) :
     device_name : str
     location    : Optional[str] = None
+    device_type : str = "SENSOR_ACTUATOR"   # 생성시 기본 값
 
 class DeviceCreate(DeviceBase) :
     device_serial   : str

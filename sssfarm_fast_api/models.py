@@ -46,6 +46,7 @@ class Device(Base) :
     user_preset_id  = Column(Integer , ForeignKey("userpreset.preset_id") , nullable = True)
     plant_preset_id = Column(Integer , ForeignKey("plantpreset.plant_preset_id") , nullable = True)
     last_active     = Column(DATETIME)
+    device_type     = Column(String(50) , nullable = False , default = "SENSOR_ACTUATOR")
     
     # 실시간 제어를 위한 상태 관리 필드들
     target_led_state    = Column(String(10) , default = "OFF")
