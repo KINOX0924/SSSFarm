@@ -80,6 +80,12 @@ create table userpreset (
     light_start_hour int ,
     light_end_hour int
 );
+create table plantimage (
+	image_id bigint auto_increment primary key ,
+    device_id bigint ,
+    image_path varchar(255) Not null ,
+    captured_time datetime Not null
+);
 alter table user add constraint fk_user_positionid foreign key (position_id) references position (position_id);
 alter table device add constraint fk_device_positionid foreign key (position_id) references position (position_id);
 alter table device add constraint fk_device_userpresetid foreign key (user_preset_id) references userpreset (preset_id);
@@ -87,6 +93,7 @@ alter table device add constraint fk_device_plantpresetid foreign key (plant_pre
 alter table sensordata add constraint fk_sensordata_deviceid foreign key (device_id) references device (device_id);
 alter table actionlog add constraint fk_actionlog_deviceid foreign key (device_id) references device (device_id);
 alter table userpreset add constraint fk_userpreset_userid foreign key (user_id) references user (user_id);
+alter table plantimage add constraint fk_plantimage_deviceid foreign key (device_id) references device (device_id);
 
 select * from actionlog;
 select * from device;

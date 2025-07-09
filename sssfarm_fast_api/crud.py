@@ -241,3 +241,22 @@ def create_action_log(db : Session , action : schemas.ActionLogCreate) :
 # device_id 로 로그 조회
 def get_action_logs_by_deviceid(db : Session , device_id : int , skip : int = 0 , limit = 100) :
     return db.query(models.ActionLog).filter(models.ActionLog.device_id == device_id).order_by(models.ActionLog.action_time.desc()).offset(skip).limit(limit).all()
+
+
+# PLANTIMAGE CRUD
+def create_plant_image(db : Session , image_data : schemas.PlantImageCreate) :
+    device = get_device_by_serial(db , serial = image_data.device_serial)
+    
+    if not device :
+        return None
+
+    db_image = models.PlantImage (
+        device_id = device.device_id ,
+        image_path = image_data.image_path ,
+        captured_time = datetime.now()
+    )
+    
+    db.add(db_image)
+    db.commit()
+    db.refresh(db_image)
+    return db_image

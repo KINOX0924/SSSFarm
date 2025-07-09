@@ -199,6 +199,15 @@ def get_device_control_status(device_id : int , db : Session = Depends(get_datab
     )
     
     
+# 이미지 정보 수신 엔드포인트
+@app.post("/plant-image/" , response_model = schemas.PlantImage , tags = ["Images"] , summary = "이미지 수신")
+def create_plant_image_info(image_data : schemas.PlantImageCreate , db : Session = Depends(get_database)) :
+    db_image = crud.create_plant_image(db , image_data = image_data)
+    if db_image is None :
+        raise HTTPException(status_code = 404 , detail = "등록되지 않은 시리얼 번호의 장치입니다.")
+    return db_image
+    
+    
 # 웹소켓 연결 관리자
 # 프론트엔드에 실시간으로 센서데이터를 전달해주기 위한 클래스
 class ConnectionManager :

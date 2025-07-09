@@ -1,12 +1,14 @@
-import cv2                                      # 이미지 처리 , 카메라 작동 등에 관련된 opencv 라이브러리
-import time                                    # 촬영 주기를 설정하기 위한 라이브러리
-import os                                       # os 명령어를 직접 사용하기 위한 라이브러리
-from datetime import datetime     # 촬영 일자를 쓰기 위한 라이브러리
+import cv2                      # 이미지 처리 , 카메라 작동 등에 관련된 opencv 라이브러리
+import time                     # 촬영 주기를 설정하기 위한 라이브러리
+import os                       # os 명령어를 직접 사용하기 위한 라이브러리
+import requests                 # API 호출을 위한 라이브러리
+from datetime import datetime   # 촬영 일자를 쓰기 위한 라이브러리
 
 # 설정
-CAPTURE_INTERVAL = 10           # 촬영 간격(초)
-SAVE_DIR = "images"                 # 이미지를 저장하는 경로
-DEVICE_SERIAL = "HD-3000"      # 카메라 장치 이름
+API_BASE_URL = "http://127.0.0.1:8000"  # API 서버 주소
+CAPTURE_INTERVAL = 10                   # 촬영 간격(초)
+SAVE_DIR = "images"                     # 이미지를 저장하는 경로
+DEVICE_SERIAL = "HD-3000"               # 카메라 장치 이름
 
 # 카메라로 이미지를 캡처하고 파일로 저장하는 함수
 def capture_and_save_image() :
@@ -16,6 +18,7 @@ def capture_and_save_image() :
     cap = cv2.VideoCapture(1)
     
     # 카메라가 정상적으로 작동하는 지 확인
+    # 카메라가 정상 작동하지 않으면 return
     if not cap.isOpened() :
         print(f"[에러] | [{datetime.now()}] 카메라를 작동할 수 없습니다.")
         return
@@ -27,12 +30,23 @@ def capture_and_save_image() :
         # 저장할 폴더가 없으면 생성
         os.makedirs(SAVE_DIR , exist_ok = True)
         
-        time_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_name = f"{DEVICE_SERIAL}_{time_stamp}.jpg"
-        file_path = os.path.join(SAVE_DIR , file_name)
+        time_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")   # 촬영된 시간 저장
+        file_name = f"{DEVICE_SERIAL}_{time_stamp}.jpg"         # 저장할 파일 이름 설정
+        file_path = os.path.join(SAVE_DIR , file_name)          # 파일명과 저장할 디렉토리 주소를 조인
         
-        cv2.imwrite(file_path , frame)
+        cv2.imwrite(file_path , frame)  # 디렉토리 주소를 사용하여 프레임을 저장
         print(f"[알림] | [{datetime.now()}] 이미지 저장 성공")
+        
+        try :
+            payload  = {"device_serial" : DEVICE_SERIAL , "image_path" : file_path}
+            response = requests.post(f"{API_BASE_URL}/plant-image/" , json = payload)
+            
+            if response.status_code == 200 :
+                print("[알림] | API 서버 이미지 저장 성공")
+            else :
+                print(f"[에러] | API 서버 이미지 저장 실패 : {response.status_code} - {response.text}")
+        except Exception as err :
+            print(f"[에러] | API 요청 실패 : {err}")
     else :
         print(f"[주의] | [{datetime.now()}] 카메라에서 프레임을 읽을 수 없습니다.")
     

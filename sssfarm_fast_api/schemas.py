@@ -138,6 +138,23 @@ class SensorData(SensorDataBase) :
         from_attributes = True
 
 
+# PLANTIMAGE SCHEMAS
+class PlantImageBase(BaseModel) :
+    image_path : str
+
+class PlantImageCreate(PlantImageBase) :
+    device_serial : str
+    # 이미지 생성 시 device_serial 을 받음
+
+class PlantImage(PlantImageBase) :
+    image_id      : int
+    device_id     : int
+    captured_time : datetime
+    
+    class Config :
+        from_attributes = True
+
+
 # DEVICE SCHEMAS
 # DEVICE 스키마 외 다른 스키마들을 조합
 # 가장 중요한 스키마이며 다른 스키마들을 타입 힌트로 사용하여, 장치 정보를 조회하고

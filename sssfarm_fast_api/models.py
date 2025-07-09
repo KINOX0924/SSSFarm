@@ -5,6 +5,7 @@
 from sqlalchemy import (CheckConstraint , Column , Integer , String , Text , DECIMAL , FLOAT , DATETIME, ForeignKey , BIGINT)
 from sqlalchemy.orm import relationship
 from .data_pipe import Base
+from datetime import datetime
 
 # 미리 구성한 ERD 의 모든 테이블을 아래 코드를 통해서 파이썬 클래스로 변환함
 
@@ -71,6 +72,7 @@ class Device(Base) :
     plant_preset = relationship("PlantPreset" , back_populates = "devices")  # 기기가 하나의 개발 프리셋에 속한다는 관계 정의
     sensor_data  = relationship("SensorData" , back_populates = "device")    # 기기가 하나의 센서 데이터에 속한다는 관계 정의
     action_logs  = relationship("ActionLog" , back_populates = "device")     # 기기가 하나의 동작 로그에 속한다는 관계 정의
+    plantimage   = relationship("PlantImage" , back_populates = "device")    # 촬영된 사진이 어느 장치에서 촬영된 것인지 확인하기 위한 용도
     
     # 가짐
 
@@ -150,3 +152,13 @@ class UserPreset(Base) :
     # 가짐
     user   = relationship("User" , back_populates = "user_presets")   # 사용자 프리셋은 여러 개의 사용자를 가진다는 관계 정의
     devices = relationship("Device" , back_populates = "user_preset") # 사용자 프리셋은 여러 개의 기기를 가진다는 관계 정의
+
+# plantimage 테이블
+class PlantImage(Base) :
+    __tablename__ = "plantimage"
+    image_id      = Column(BIGINT , primary_key = True , index = True)
+    device_id     = Column(Integer , ForeignKey("device.device_id") , nullable = False)
+    image_path    = Column(String(255) , nullable = False)
+    captured_time = Column(DATETIME , default = datetime.now() , nullable = False)
+    
+    device = relationship("Device" , back_populates = "plantimage")
