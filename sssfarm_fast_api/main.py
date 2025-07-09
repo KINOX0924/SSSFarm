@@ -8,9 +8,10 @@ API 엔드포인드(경로) 정의
 
 from fastapi import FastAPI , Depends , HTTPException , status , WebSocket , WebSocketDisconnect
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from typing import List , Optional
-from datetime import datetime
+from datetime import datetime , timedelta
 import threading
 import time
 
@@ -24,6 +25,9 @@ app = FastAPI (
     title = "SeSac Smart Farm Fast API" ,
     description = "스마트팜 자동화 관리를 위한 패스트 API"
 )
+
+# 정적파일 마운트
+app.mount("/static" , StaticFiles(directory = "image") , name = "static")
 
 # 백그라운드 자동 제어
 # 모든 장치에 대해 주기적으로 자동 제어 로직을 실행하는 반복 함수
@@ -51,6 +55,38 @@ def control_loop() :
 def on_startup() :
     thread = threading.Thread(target = control_loop , daemon = True)
     thread.start()
+    
+# 웹소켓 연결 관리자
+# 프론트엔드에 실시간으로 센서데이터를 전달해주기 위한 클래스
+class ConnectionManager :
+    def __init__(self) :
+        self.active_connections : list[WebSocket] = []
+    
+    async def connect(self , websocket : WebSocket) :
+        await websocket.accept()
+        self.active_connections.append(websocket)
+    
+    def disconnect(self , websocket : WebSocket) :
+        self.active_connections.remove(websocket)
+    
+    async def broadcast(self , message : str) :
+        # 연결된 모든 클라이언트에게 메시지 전송 함수
+        for connection in self.active_connections :
+            await connection.send_text(message)
+
+manager = ConnectionManager()
+
+# 웹소켓 엔드포인트
+@app.websocket("/ws")
+async def websocket_endpoint(websocket : WebSocket) :
+    # 클라이언트가 접속하면 관리자에 클라이언트 추가
+    await manager.connect(websocket)
+    try :
+        while True :
+            # 클라이언트로부터 메시지 대기
+            await websocket.receive_text()
+    except WebSocketDisconnect :
+        manager.disconnect(websocket)
 
 # 로그인 엔드포인트
 @app.post("/token" , tags = ["Authentication"] , summary = "사용자 로그인 및 토큰 발급")
@@ -182,6 +218,16 @@ async def create_sensor_data(data : schemas.SensorDataCreate , db : Session = De
     await manager.broadcast(response_data.model_dump_json())
     return db_data
 
+# 차트를 그리기 위한 데이터 전달 엔드포인트
+@app.get("/devices/{device.id}/historical-data" , response_model = List[schemas.SensorData] , tags = ["Charts"] , summary = "장치 데이터 수신(특정 기간)")
+def read_historical_data(device_id : int , hours_ago : int = 24 , db : Session = Depends(get_database)) :
+    # /devices/1/historical-data?hours_ago=48 <= 로 시간 변경 가능
+    end_date   = datetime.now()
+    start_date = end_date - timedelta(hours = hours_ago)
+    
+    historical_data = crud.get_historical_sensor_data(db , device_id = device_id , start_date = start_date , end_date = end_date)
+    return historical_data
+
 # ESP32 또는 IOT 장치가 목표 제어 상태(명령) 을 서버로부터 받아가는 엔드 포인트
 @app.get("/devices/{device_id}/control_status" , response_model = schemas.DeviceControlStatus , tags = ["SendCommand"] , summary = "명령 데이터 송신")
 def get_device_control_status(device_id : int , db : Session = Depends(get_database)) :
@@ -206,39 +252,12 @@ def create_plant_image_info(image_data : schemas.PlantImageCreate , db : Session
     if db_image is None :
         raise HTTPException(status_code = 404 , detail = "등록되지 않은 시리얼 번호의 장치입니다.")
     return db_image
-    
-    
-# 웹소켓 연결 관리자
-# 프론트엔드에 실시간으로 센서데이터를 전달해주기 위한 클래스
-class ConnectionManager :
-    def __init__(self) :
-        self.active_connections : list[WebSocket] = []
-    
-    async def connect(self , websocket : WebSocket) :
-        await websocket.accept()
-        self.active_connections.append(websocket)
-    
-    def disconnect(self , websocket : WebSocket) :
-        self.active_connections.remove(websocket)
-    
-    async def broadcast(self , message : str) :
-        # 연결된 모든 클라이언트에게 메시지 전송 함수
-        for connection in self.active_connections :
-            await connection.send_text(message)
 
-manager = ConnectionManager()
-
-# 웹소켓 엔드포인트
-@app.websocket("/ws")
-async def websocket_endpoint(websocket : WebSocket) :
-    # 클라이언트가 접속하면 관리자에 클라이언트 추가
-    await manager.connect(websocket)
-    try :
-        while True :
-            # 클라이언트로부터 메시지 대기
-            await websocket.receive_text()
-    except WebSocketDisconnect :
-        manager.disconnect(websocket)
+# 이미지 목록 조회 API
+@app.get("/devices/{device_id}/image" , response_model = List[schemas.PlantImage] , tags = ["Images"] , summary = "특정 장치의 이미지 정보 조회")
+def read_device_images(device_id : int , skip : int = 0 , limit : int = 20 , db : Session = Depends(get_database)) :
+    images = crud.get_image_by_device(db , device_id = device_id , skip = skip , limit = limit)
+    return images
 
 
 # 기타 엔드포인트

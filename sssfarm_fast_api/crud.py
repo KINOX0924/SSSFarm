@@ -15,7 +15,7 @@ Delete : 데이터 삭제
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import datetime
+from datetime import datetime , timedelta
 from . import models , schemas , auth
 
 
@@ -194,6 +194,10 @@ def create_sensor_data(db : Session , data : schemas.SensorDataCreate) :
 def get_latest_sensor_data(db : Session , device_id : int) :
     return db.query(models.SensorData).filter(models.SensorData.device_id == device_id).order_by(models.SensorData.measure_date.desc()).first()
 
+# 특정 장치의 특정 기간 동안의 센서 데이터 이력을 조회
+def get_historical_sensor_data(db : Session , device_id : int , start_date : datetime , end_date : datetime) :
+    return db.query(models.SensorData).filter(models.SensorData.device_id == device_id).filter(models.SensorData.measure_date >= start_date).filter(models.SensorData.measure_date <= end_date).order_by(models.SensorData.measure_date.asc()).all()
+
 
 # USERPRESET CRUD
 # 사용자 프리셋을 생성(저장)
@@ -260,3 +264,7 @@ def create_plant_image(db : Session , image_data : schemas.PlantImageCreate) :
     db.commit()
     db.refresh(db_image)
     return db_image
+
+# 이미지목록을 조회하는 함수
+def get_image_by_device(db : Session , device_id : int , skip : int = 0 , limit : int = 100) :
+    return db.query(models.PlantImage).filter(models.PlantImage.device_i == device_id).order_by(models.PlantImage.captured_time.desc()).offset(skip).limit(limit).all()
