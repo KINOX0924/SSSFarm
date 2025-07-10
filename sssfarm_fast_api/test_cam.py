@@ -3,7 +3,11 @@
 import cv2
 import time
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
+
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+cap.set(cv2.CAP_PROP_ZOOM , -100)
 
 if not cap.isOpened() :
     print("카메라를 찾을 수 없습니다.")
@@ -12,7 +16,7 @@ else :
     
     start_time = time.time()
     
-    while(time.time() - start_time < 5) :
+    while(time.time() - start_time < 300) :
         ret , frame = cap.read()
         
         if not ret :

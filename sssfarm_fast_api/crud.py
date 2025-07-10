@@ -256,8 +256,7 @@ def create_plant_image(db : Session , image_data : schemas.PlantImageCreate) :
 
     db_image = models.PlantImage (
         device_id = device.device_id ,
-        image_path = image_data.image_path ,
-        captured_time = datetime.now()
+        image_path = image_data.image_path
     )
     
     db.add(db_image)
@@ -267,4 +266,4 @@ def create_plant_image(db : Session , image_data : schemas.PlantImageCreate) :
 
 # 이미지목록을 조회하는 함수
 def get_image_by_device(db : Session , device_id : int , skip : int = 0 , limit : int = 100) :
-    return db.query(models.PlantImage).filter(models.PlantImage.device_i == device_id).order_by(models.PlantImage.captured_time.desc()).offset(skip).limit(limit).all()
+    return db.query(models.PlantImage).filter(models.PlantImage.device_id == device_id).order_by(models.PlantImage.captured_time.desc()).offset(skip).limit(limit).all()
