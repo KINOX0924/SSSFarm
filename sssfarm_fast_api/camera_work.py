@@ -1,14 +1,22 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import cv2                      # 이미지 처리 , 카메라 작동 등에 관련된 opencv 라이브러리
 import time                     # 촬영 주기를 설정하기 위한 라이브러리
 import os                       # os 명령어를 직접 사용하기 위한 라이브러리
 import requests                 # API 호출을 위한 라이브러리
 from datetime import datetime   # 촬영 일자를 쓰기 위한 라이브러리
+from supabase_client import supabase    # 새로 만든 클라이먼트 라이브러리 불러오기
 
 # 설정
-API_BASE_URL = "http://127.0.0.1:8000"  # API 서버 주소
+API_BASE_URL = os.environ.get("API_BASE_URL" , "http://127.0.0.1:8000")
+# "http://127.0.0.1:8000"               # API 서버 주소
 CAPTURE_INTERVAL = 10                   # 촬영 간격(초)
 SAVE_DIR = "images"                     # 이미지를 저장하는 경로
-DEVICE_SERIAL = "HD-3000"               # 카메라 장치 이름
+DEVICE_SERIAL = os.environ.get("DEVICE_SERIAL") # 카메라 장치 이름
+
+if not DEVICE_SERIAL :
+    raise ValueError ("장치 환경 변수가 설정되지 않았습니다.")
 
 # 카메라로 이미지를 캡처하고 파일로 저장하는 함수
 def capture_and_save_image() :
@@ -32,7 +40,31 @@ def capture_and_save_image() :
         
         time_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")   # 촬영된 시간 저장
         file_name = f"{DEVICE_SERIAL}_{time_stamp}.jpg"         # 저장할 파일 이름 설정
-        file_path = os.path.join(SAVE_DIR , file_name)          # 파일명과 저장할 디렉토리 주소를 조인
+        
+        # 온라인 시 해당 코드 사용
+        success , image_buffer = cv2.imencode(".jpg" , frame)
+        
+        try : 
+            supabase.storage.from_("plant-images").upload(
+                path = file_name ,
+                file = image_buffer.tobytes() ,
+                file_options = {"content-type" : "image/jpeg"}
+            )
+
+            public_url_response = supabase.storage.from_("plant-images").get_public_url(file_name)
+            public_url = public_url_response
+            
+            payload = {"device_serial" : DEVICE_SERIAL , "image_path" : public_url}
+            response = requests.post(f"{API_BASE_URL}/plant-images" , json = payload)
+        
+        except Exception as err :
+            print(f"[주의] | 온라인 DB 에 이미지 저장 실패 에러 코드 : {err}")
+    
+    cap.release()
+"""
+        # 오프라인 시 아래 코드 사용
+        file_path = os.path.join(SAVE_DIR , file_name)         # 파일명과 저장할 디렉토리 주소를 조인
+        
         
         cv2.imwrite(file_path , frame)  # 디렉토리 주소를 사용하여 프레임을 저장
         print(f"[알림] | [{datetime.now()}] 이미지 저장 성공")
@@ -51,6 +83,7 @@ def capture_and_save_image() :
         print(f"[주의] | [{datetime.now()}] 카메라에서 프레임을 읽을 수 없습니다.")
     
     cap.release()
+"""
 
 if __name__ == "__main__" :
     print(f"[{DEVICE_SERIAL}] 카메라 작동을 시작합니다.")

@@ -5,6 +5,9 @@ API 엔드포인드(경로) 정의
 외부 요청 처이 및 응답
 백그라운드 작업 스케쥴리
 """
+from dotenv import load_dotenv
+load_dotenv()
+
 
 from fastapi import FastAPI , Depends , HTTPException , status , WebSocket , WebSocketDisconnect
 from fastapi.security import OAuth2PasswordRequestForm

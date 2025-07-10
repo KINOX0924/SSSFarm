@@ -1,12 +1,14 @@
 #파이썬 어플리케이션이 MySQL 데이터베이스와 통신하기 위한 다리(연결 설정) 역할
 #SQLAlchemy ORM 을 사용하여 데이터베이스 작업을 보다 안전하게 처리할 수 있도록 초기 환경을 설정함
 
-
 """
 SQLAlchemy : 파이썬의 대표적인 ORM(Object-Relational Mapper)
     해당 ORM 을 사용하면 SQL 쿼리문을 직접 작성하지 않고, 파이썬 객체를 사용해서 데이터베이스의 테이블과 데이터를 조작할 수 있음
     ORM(Object-Relational Mapper)
 """
+
+import os
+from sqlalchemy.pool import NullPool
 
 from sqlalchemy import create_engine
 """
@@ -29,14 +31,17 @@ sessionmaker : 데이터베이스와의 모든 상호작용(읽기 , 쓰기 , �
 
 # MySQL 데이터베이스와 연결하는 주소를 가져옴
 # mysql+pymysql://사용자아이디:비밀번호:호스트명:포트번호/DB스키마명 
-MY_SQL_DB_URL = "mysql+pymysql://root:1234@localhost:3306/sssmartfarm"
+MY_SQL_DB_URL = os.environ.get("DATABASE_URL")
+if not MY_SQL_DB_URL :
+    raise ValueError("DATABASE_URL 환경변수가 설정되지 않았습니다.")
+# "mysql+pymysql://root:1234@localhost:3306/sssmartfarm" : 오프라인 주소
 
 """
 MySQL 데이터베이스 엔진 생성
     20 번줄 코드에서 정의한 URL 정보를 create_engine 함수에 전달하여 데이터베이스 엔진을 생성
     DB_engine 이 sssmartfarm 데이터베이스와 통신할 준비가 됨
 """
-DB_engine = create_engine(MY_SQL_DB_URL)
+DB_engine = create_engine(MY_SQL_DB_URL , poolclass = NullPool)
 
 """
 데이터베이스 세션을 생성하는 클래스(SessionLocal) 를 정의
