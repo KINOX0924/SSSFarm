@@ -23,7 +23,7 @@ def capture_and_save_image() :
     # 카메라 연결
     # 웹캠이 장착된 노트북일 경우 0 , 그 외에 추가적으로 USB 를 장착할 경우 1 씩 숫자가 올라감
     # 연결 시 나중에 연결된 카메라들이 나중 인덱스라고 생각하면 됨
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
     
     # 카메라가 정상적으로 작동하는 지 확인
     # 카메라가 정상 작동하지 않으면 return

@@ -187,6 +187,7 @@ class Device(DeviceBase) :  # 가장 복잡하고 많은 정보를 보여주는 
     plant_preset : Optional[PlantPreset] = None
     sensor_data  : List[SensorData] = []
     action_logs  : List[ActionLog] = []
+    plant_images : List[PlantImage] = []
     
     class Config :
         from_attributes = True

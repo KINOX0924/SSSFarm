@@ -2,7 +2,7 @@
 구성한 ERD 를 그대로 코드로 옮기는 파일
 """
 
-from sqlalchemy import (CheckConstraint , Column , Integer , String , Text , DECIMAL , FLOAT , DATETIME, ForeignKey , BIGINT)
+from sqlalchemy import (CheckConstraint , Column , Integer , String , Text , DECIMAL , FLOAT , DATETIME, ForeignKey , BIGINT , func)
 from sqlalchemy.orm import relationship
 from .data_pipe import Base
 from datetime import datetime
@@ -160,6 +160,6 @@ class PlantImage(Base) :
     image_id      = Column(BIGINT , primary_key = True , index = True)
     device_id     = Column(Integer , ForeignKey("device.device_id") , nullable = False)
     image_path    = Column(String(255) , nullable = False)
-    captured_time = Column(DATETIME , default = datetime.now() , nullable = False)
+    captured_time = Column(DATETIME , server_default = func.now() , nullable = False)
     
     device = relationship("Device" , back_populates = "plantimage")

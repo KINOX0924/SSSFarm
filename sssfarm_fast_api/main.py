@@ -249,7 +249,7 @@ def get_device_control_status(device_id : int , db : Session = Depends(get_datab
     
     
 # 이미지 정보 수신 엔드포인트
-@app.post("/plant-image/" , response_model = schemas.PlantImage , tags = ["Images"] , summary = "이미지 수신")
+@app.post("/plant-images/" , response_model = schemas.PlantImage , tags = ["Images"] , summary = "이미지 수신")
 def create_plant_image_info(image_data : schemas.PlantImageCreate , db : Session = Depends(get_database)) :
     db_image = crud.create_plant_image(db , image_data = image_data)
     if db_image is None :
