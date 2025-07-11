@@ -4,21 +4,32 @@
 """
 SQLAlchemy : 파이썬의 대표적인 ORM(Object-Relational Mapper)
     해당 ORM 을 사용하면 SQL 쿼리문을 직접 작성하지 않고, 파이썬 객체를 사용해서 데이터베이스의 테이블과 데이터를 조작할 수 있음
+    
     ORM(Object-Relational Mapper)
+    객체 지향 프로그래밍 언어와 관계형 데이터베이스 사이의 통합을 위한 기술을 말함
+    ORM 을 사용하면 데이터베이스 테이블을 객체(클래스 및 인스턴스) 로 매핑하여
+    개발자가 SQL 쿼리 대신 객체를 조작하는 코드로 데이터베이스와 상호작용할 수 있게됨
 """
 
 import os
+# 운영체제와의 상호작용을 하기 위해서 os 라이브러리를 가져옴
+
 from sqlalchemy.pool import NullPool
+"""
+NullPool 은 sqlalchemy 에서 데이터베이스 연결 풀링(Pooling) 기능을 제어함
+일반적으로 sqlalchemy 는 연결 풀링을 통해 성능을 최적화하지만 , NullPoll 은 연결을 즉시 생성하고 닫는 방식으로 사용됨
+테스트 환경 , 일시적인 연결관리 , 외부에서의 연결을 관리하는 경우에 유용함
+"""
 
 from sqlalchemy import create_engine
 """
-create_engine : 데이터베이스와 실제 연결을 설정하고 관리하는 엔진을 만들기 위해서 불러옴
+create_engine : 데이터베이스와 실제 연결을 설정하고 관리하는 엔진을 만들기 위한 라이브러리
     데이터베이스 서버와 통신을 담당하는 핵심 객체
     내부적으로 커넥션 풀을 관리하여 , 필요할 때마다 데이터베이스 연결을 새로 만드는 대신 기존 연결을 재사용함으로서 성능을 향상시킴
 """
 from sqlalchemy.ext.declarative import declarative_base
 """
-declarative_base : 데이터베이스 테이블과 매핑될 파이썬 클래스들의 기반이 되는 부모 클래스 생성위함
+declarative_base : 데이터베이스 테이블과 매핑될 파이썬 클래스들의 기반이 되는 부모 클래스 생성하기 위한 라이브러리
     해당 함수로 호출하여 만든 Base 클래스를 상속하는 모든 파이썬 클래스는 SQLAlchemy 에 의해 하나의 데이터베이스로 테이블로 인식되고 관리됨
     즉, 테이블의 구조를 정의하는 모델을 만들기 위한 것
 """
@@ -40,6 +51,11 @@ if not MY_SQL_DB_URL :
 MySQL 데이터베이스 엔진 생성
     20 번줄 코드에서 정의한 URL 정보를 create_engine 함수에 전달하여 데이터베이스 엔진을 생성
     DB_engine 이 sssmartfarm 데이터베이스와 통신할 준비가 됨
+    
+poolclass = NullPoll
+    연결 풀 클래스를 NullPool 로 설정함
+    데이터베이스 연결 풀링을 하지 않고 , 매 쿼리마다 새로운 연결을 생성하고 즉시 해제하는 방식
+    가벼운 작업 , 각 연결이 짧게 유지되기를 원할 때 주로 사용함
 """
 DB_engine = create_engine(MY_SQL_DB_URL , poolclass = NullPool)
 
