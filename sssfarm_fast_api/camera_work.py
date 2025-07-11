@@ -9,6 +9,7 @@ from datetime import datetime   # 촬영 일자를 쓰기 위한 라이브러리
 from supabase_client import supabase    # 새로 만든 클라이먼트 라이브러리 불러오기
 
 # 설정
+DATABASE_URL2 = os.environ.get("DATABASE_URL2")
 API_BASE_URL = os.environ.get("API_BASE_URL" , "http://127.0.0.1:8000")
 # "http://127.0.0.1:8000"               # API 서버 주소
 CAPTURE_INTERVAL = 10                   # 촬영 간격(초)
@@ -56,7 +57,7 @@ def capture_and_save_image() :
                 public_url = supabase.storage.from_("plant-images").get_public_url(file_name) 
                 
                 payload  = {"device_serial" : DEVICE_SERIAL , "image_path" : public_url}
-                response = requests.post(f"https://sssfarm-fast-api.onrender.com/plant-images" , json = payload)
+                response = requests.post(f"{DATABASE_URL2}/plant-images/" , json = payload)
                 
                 if response.status_code == 200 :
                     print("[알림] | API 서버에 이미지 정보 기록 성공")
