@@ -52,11 +52,10 @@ def capture_and_save_image() :
                     file_options = {"content-type" : "image/jpeg"}
                 )
 
-                public_url_response = supabase.storage.from_("plant-images").get_public_url(file_name)
-                public_url = public_url_response
+                public_url = supabase.storage.from_("plant-images").get_public_url(file_name) 
                 
                 payload = {"device_serial" : DEVICE_SERIAL , "image_path" : public_url}
-                response = requests.post(f"{API_BASE_URL}/plant_images" , json = payload)
+                response = requests.post(f"{API_BASE_URL}/plant-images" , json = payload)
                 
                 if response.status_code == 200 :
                     print("[알림] | API 서버에 이미지 정보 기록 성공")
