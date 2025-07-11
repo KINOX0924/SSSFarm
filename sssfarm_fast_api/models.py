@@ -73,7 +73,7 @@ class Device(Base) :
     plant_preset = relationship("PlantPreset" , back_populates = "devices")  # 기기가 하나의 개발 프리셋에 속한다는 관계 정의
     sensor_data  = relationship("SensorData" , back_populates = "device")    # 기기가 하나의 센서 데이터에 속한다는 관계 정의
     action_logs  = relationship("ActionLog" , back_populates = "device")     # 기기가 하나의 동작 로그에 속한다는 관계 정의
-    plantimage   = relationship("PlantImage" , back_populates = "device")    # 촬영된 사진이 어느 장치에서 촬영된 것인지 확인하기 위한 용도
+    plant_images = relationship("PlantImage" , back_populates = "device")    # 촬영된 사진이 어느 장치에서 촬영된 것인지 확인하기 위한 용도
     
     # 가짐
 
@@ -156,10 +156,10 @@ class UserPreset(Base) :
 
 # plantimage 테이블
 class PlantImage(Base) :
-    __tablename__ = "plantimage"
+    __tablename__ = "plant_images"
     image_id      = Column(BIGINT , primary_key = True , index = True)
     device_id     = Column(Integer , ForeignKey("device.device_id") , nullable = False)
     image_path    = Column(String(255) , nullable = False)
     captured_time = Column(DATETIME , server_default = func.now() , nullable = False)
     
-    device = relationship("Device" , back_populates = "plantimage")
+    device = relationship("Device" , back_populates = "plant_images")

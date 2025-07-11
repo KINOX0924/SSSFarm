@@ -222,7 +222,7 @@ async def create_sensor_data(data : schemas.SensorDataCreate , db : Session = De
     return db_data
 
 # 차트를 그리기 위한 데이터 전달 엔드포인트
-@app.get("/devices/{device.id}/historical-data" , response_model = List[schemas.SensorData] , tags = ["Charts"] , summary = "장치 데이터 수신(특정 기간)")
+@app.get("/devices/{device_id}/historical-data" , response_model = List[schemas.SensorData] , tags = ["Charts"] , summary = "장치 데이터 수신(특정 기간)")
 def read_historical_data(device_id : int , hours_ago : int = 24 , db : Session = Depends(get_database)) :
     # /devices/1/historical-data?hours_ago=48 <= 로 시간 변경 가능
     end_date   = datetime.now()
@@ -249,7 +249,7 @@ def get_device_control_status(device_id : int , db : Session = Depends(get_datab
     
     
 # 이미지 정보 수신 엔드포인트
-@app.post("/plant-images" , response_model = schemas.PlantImage , tags = ["Images"] , summary = "이미지 수신")
+@app.post("/plant-images/" , response_model = schemas.PlantImage , tags = ["Images"] , summary = "이미지 수신")
 def create_plant_image_info(image_data : schemas.PlantImageCreate , db : Session = Depends(get_database)) :
     db_image = crud.create_plant_image(db , image_data = image_data)
     if db_image is None :
@@ -257,7 +257,7 @@ def create_plant_image_info(image_data : schemas.PlantImageCreate , db : Session
     return db_image
 
 # 이미지 목록 조회 API
-@app.get("/devices/{device_id}/image" , response_model = List[schemas.PlantImage] , tags = ["Images"] , summary = "특정 장치의 이미지 정보 조회")
+@app.get("/devices/{device_id}/images" , response_model = List[schemas.PlantImage] , tags = ["Images"] , summary = "특정 장치의 이미지 정보 조회")
 def read_device_images(device_id : int , skip : int = 0 , limit : int = 20 , db : Session = Depends(get_database)) :
     images = crud.get_image_by_device(db , device_id = device_id , skip = skip , limit = limit)
     return images

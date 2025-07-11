@@ -44,21 +44,29 @@ def capture_and_save_image() :
         # 온라인 시 해당 코드 사용
         success , image_buffer = cv2.imencode(".jpg" , frame)
         
-        try : 
-            supabase.storage.from_("plant-images").upload(
-                path = file_name ,
-                file = image_buffer.tobytes() ,
-                file_options = {"content-type" : "image/jpeg"}
-            )
+        if success :
+            try : 
+                supabase.storage.from_("plant-images").upload(
+                    path = file_name ,
+                    file = image_buffer.tobytes() ,
+                    file_options = {"content-type" : "image/jpeg"}
+                )
 
-            public_url_response = supabase.storage.from_("plant-images").get_public_url(file_name)
-            public_url = public_url_response
+                public_url_response = supabase.storage.from_("plant-images").get_public_url(file_name)
+                public_url = public_url_response
+                
+                payload = {"device_serial" : DEVICE_SERIAL , "image_path" : public_url}
+                response = requests.post(f"{API_BASE_URL}/plant-images" , json = payload)
+                
+                if response.status_code == 200 :
+                    print("[알림] | API 서버에 이미지 정보 기록 성공")
+                else :
+                    print(f"[에러] | API 서버에 이미지 정보 기록 실패 : {response.status_code} - {response.text}")
             
-            payload = {"device_serial" : DEVICE_SERIAL , "image_path" : public_url}
-            response = requests.post(f"{API_BASE_URL}/plant-images" , json = payload)
-        
-        except Exception as err :
-            print(f"[주의] | 온라인 DB 에 이미지 저장 실패 에러 코드 : {err}")
+            except Exception as err :
+                print(f"[주의] | 온라인 DB 에 이미지 저장 실패 에러 코드 : {err}")
+        else :
+            print(f"[경고] | 카메라 프레임을 읽을 수 없습니다.")
     
     cap.release()
 """
