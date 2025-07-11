@@ -149,7 +149,7 @@ class PlantImageCreate(PlantImageBase) :
 class PlantImage(PlantImageBase) :
     image_id      : int
     device_id     : int
-    captured_time : datetime
+    captured_at   : datetime
     
     class Config :
         from_attributes = True

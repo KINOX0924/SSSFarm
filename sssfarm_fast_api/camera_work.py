@@ -33,6 +33,7 @@ def capture_and_save_image() :
     
     # 카메라에게서 한 프레임(이미지 한 장) 을 읽음
     ret , frame = cap.read()
+    cap.release()
     
     if ret :
         # 저장할 폴더가 없으면 생성
@@ -66,31 +67,6 @@ def capture_and_save_image() :
                 print(f"[주의] | 온라인 DB 에 이미지 저장 실패 에러 코드 : {err}")
         else :
             print(f"[경고] | 카메라 프레임을 읽을 수 없습니다.")
-    
-    cap.release()
-"""
-        # 오프라인 시 아래 코드 사용
-        file_path = os.path.join(SAVE_DIR , file_name)         # 파일명과 저장할 디렉토리 주소를 조인
-        
-        
-        cv2.imwrite(file_path , frame)  # 디렉토리 주소를 사용하여 프레임을 저장
-        print(f"[알림] | [{datetime.now()}] 이미지 저장 성공")
-        
-        try :
-            payload  = {"device_serial" : DEVICE_SERIAL , "image_path" : file_path}
-            response = requests.post(f"{API_BASE_URL}/plant-image/" , json = payload)
-            
-            if response.status_code == 200 :
-                print("[알림] | API 서버 이미지 저장 성공")
-            else :
-                print(f"[에러] | API 서버 이미지 저장 실패 : {response.status_code} - {response.text}")
-        except Exception as err :
-            print(f"[에러] | API 요청 실패 : {err}")
-    else :
-        print(f"[주의] | [{datetime.now()}] 카메라에서 프레임을 읽을 수 없습니다.")
-    
-    cap.release()
-"""
 
 if __name__ == "__main__" :
     print(f"[{DEVICE_SERIAL}] 카메라 작동을 시작합니다.")
