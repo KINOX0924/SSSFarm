@@ -160,6 +160,6 @@ class PlantImage(Base) :
     image_id      = Column(BIGINT , primary_key = True , index = True)
     device_id     = Column(Integer , ForeignKey("device.device_id") , nullable = False)
     image_path    = Column(String(255) , nullable = False)
-    captured_time = Column(DATETIME , server_default = func.now() , nullable = False)
+    captured_at   = Column(DATETIME , server_default = func.now() , nullable = False)
     
     device = relationship("Device" , back_populates = "plant_images")
