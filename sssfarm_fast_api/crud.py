@@ -255,8 +255,9 @@ def create_plant_image(db : Session , image_data : schemas.PlantImageCreate) :
         return None
 
     db_image = models.PlantImage (
-        device_id = device.device_id ,
-        image_path = image_data.image_path
+        device_id   = device.device_id ,
+        image_path  = image_data.image_path ,
+        captured_at = datetime.now()
     )
     
     db.add(db_image)
