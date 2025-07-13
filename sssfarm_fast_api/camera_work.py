@@ -12,7 +12,7 @@ from supabase_client import supabase    # 새로 만든 클라이먼트 라이�
 DATABASE_URL2 = os.environ.get("DATABASE_URL2")
 API_BASE_URL = os.environ.get("API_BASE_URL" , "http://127.0.0.1:8000")
 # "http://127.0.0.1:8000"               # API 서버 주소
-CAPTURE_INTERVAL = 10                   # 촬영 간격(초)
+CAPTURE_INTERVAL = 2                   # 촬영 간격(초)
 SAVE_DIR = "images"                     # 이미지를 저장하는 경로
 DEVICE_SERIAL = os.environ.get("DEVICE_SERIAL") # 카메라 장치 이름
 
