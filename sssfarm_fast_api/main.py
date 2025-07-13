@@ -30,7 +30,7 @@ app = FastAPI (
 )
 
 # 정적파일 마운트
-app.mount("/static" , StaticFiles(directory = "image") , name = "static")
+app.mount("/static" , StaticFiles(directory = "sssfarm_fast_api/image") , name = "static")
 
 # 백그라운드 자동 제어
 # 모든 장치에 대해 주기적으로 자동 제어 로직을 실행하는 반복 함수
