@@ -1,0 +1,15 @@
+{
+  "short_name": "SSSFarm",
+  "name": "SSSFarm - 스마트 농장 관리 시스템",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#22c55e",
+  "background_color": "#ffffff"
+}
