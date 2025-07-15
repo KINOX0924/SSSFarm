@@ -12,6 +12,7 @@ load_dotenv()
 from fastapi import FastAPI , Depends , HTTPException , status , WebSocket , WebSocketDisconnect
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List , Optional
 from datetime import datetime , timedelta
@@ -27,6 +28,14 @@ from .data_pipe import DB_engine , SessionLocal , get_database
 app = FastAPI (
     title = "SeSac Smart Farm Fast API" ,
     description = "스마트팜 자동화 관리를 위한 패스트 API"
+)
+
+app.add_middleware(
+    CORSMiddleware ,
+    allow_origins = "http://localhost:3000" ,
+    allow_credentials = True ,
+    allow_methods = ["*"] ,
+    allow_headers = ["*"] ,
 )
 
 # 정적파일 마운트
