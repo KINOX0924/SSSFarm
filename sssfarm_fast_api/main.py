@@ -283,3 +283,9 @@ def create_user_preset(preset : schemas.UserPresetCreate , db : Session = Depend
 def read_user_presets(user_id : int , db : Session = Depends(get_database)) :
     presets = crud.get_user_presets_by_userid(db , user_id = user_id)
     return presets
+
+@app.get("/health")
+def health_check() :
+    """서버 콜드 스타트 방지용 엔드포인트 / 사용하지 말 것"""
+    print("Health check ping received!!")
+    return {"status" : "OK"}
