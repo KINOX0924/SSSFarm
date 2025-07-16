@@ -233,7 +233,7 @@ def manual_control_device(device_id : int , control_data : schemas.ManualControl
 async def create_sensor_data(data : schemas.SensorDataCreate) :
     try :
         insert_data = data.model_dump()
-        response = supabase.table("sensor_data").insert(insert_data).execute()
+        response = supabase.table("sensordata").insert(insert_data).execute()
         
         if len(response.data) == 0 :
             raise HTTPException(status_code = 400 , detail = "데이터 삽입에 실패했습니다.")
