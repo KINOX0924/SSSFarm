@@ -52,6 +52,10 @@ supabase : Client = create_client(supabase_url , supabase_key)
 # 모든 장치에 대해 주기적으로 자동 제어 로직을 실행하는 반복 함수
 def control_loop() :
     while True :
+        # n 초 대기 후 다시 반복
+        # 타임시간 2초 -> 30초로 수정
+        time.sleep(30)
+        
         # 매번 새로운 DB 세션을 생성하여 작업 수행
         db = SessionLocal()
         try :
@@ -66,10 +70,6 @@ def control_loop() :
             # 작업 종료 후 세션 닫기
             db.close()
         
-        # n 초 대기 후 다시 반복
-        # 타임시간 2초 -> 30초로 수정
-        time.sleep(30)
-
 # FastAPI 앱이 시작될 때 백그라운드 제어 루프를 별도 스레드로 실행
 @app.on_event("startup")
 def on_startup() :
@@ -229,7 +229,7 @@ def manual_control_device(device_id : int , control_data : schemas.ManualControl
 # ESP32(장치) 연결 엔드포인트
 # ESP32 또는 IOT 장치가 센서 데이터를 서버로 전송하는 엔드 포인트
 
-@app.post("/sensordata/" , tags = ["GetData"] , summary = "센서 데이터 수신")
+@app.post("/sensordata/" ,tags = ["GetData"] , summary = "센서 데이터 수신")
 async def create_sensor_data(data : schemas.SensorDataCreate) :
     try :
         insert_data = data.model_dump()
