@@ -13,24 +13,26 @@ from fastapi import FastAPI , Depends , HTTPException , status , WebSocket , Web
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from supabase import create_client , Client
+# from supabase import create_client , Client
 from sqlalchemy.orm import Session
 from typing import List , Optional
 from datetime import datetime , timedelta
 import threading
 import time
-import os
+# import os
 
 
 # 지금까지 만든 모든 모듈들을 로드
 from . import models , schemas , crud , control_logic , auth
-from .data_pipe import DB_engine , SessionLocal , get_database
+from .data_pipe import SessionLocal , get_database , DB_engine
 
 # Fast API 앱 인스턴스 생성
 app = FastAPI (
     title = "SeSac Smart Farm Fast API" ,
     description = "스마트팜 자동화 관리를 위한 패스트 API"
 )
+
+models.Base.metadata.create_all(bind = DB_engine)
 
 app.add_middleware(
     CORSMiddleware ,
@@ -43,10 +45,22 @@ app.add_middleware(
 # 정적파일 마운트
 app.mount("/static" , StaticFiles(directory = "sssfarm_fast_api/image") , name = "static")
 
-# 시작 시 한번만 DB 를 불러오도록 수정
+"""
+# supabase 클라이언트를 앱 시작 시 한번만 생성
 supabase_url : str = os.environ.get("SUPABASE_URL")
 supabase_key : str = os.environ.get("SUPABASE_KEY")
 supabase : Client = create_client(supabase_url , supabase_key)
+"""
+
+# FastAPI 앱이 시작될 때 백그라운드 제어 루프를 별도 스레드로 실행
+@app.on_event("startup")
+def startup_event() :
+    thread = threading.Thread(target = control_loop , daemon = True)
+    thread.start()
+    
+@app.on_event("shutdown")
+def shutdown_event() :
+    DB_engine.dispose()
 
 # 백그라운드 자동 제어
 # 모든 장치에 대해 주기적으로 자동 제어 로직을 실행하는 반복 함수
@@ -70,11 +84,6 @@ def control_loop() :
             # 작업 종료 후 세션 닫기
             db.close()
         
-# FastAPI 앱이 시작될 때 백그라운드 제어 루프를 별도 스레드로 실행
-@app.on_event("startup")
-def on_startup() :
-    thread = threading.Thread(target = control_loop , daemon = True)
-    thread.start()
     
 # 웹소켓 연결 관리자
 # 프론트엔드에 실시간으로 센서데이터를 전달해주기 위한 클래스
@@ -228,12 +237,12 @@ def manual_control_device(device_id : int , control_data : schemas.ManualControl
 
 # ESP32(장치) 연결 엔드포인트
 # ESP32 또는 IOT 장치가 센서 데이터를 서버로 전송하는 엔드 포인트
-
-@app.post("/sensordata/" ,tags = ["GetData"] , summary = "센서 데이터 수신")
+"""
+@app.post("/sensordata/" , tags = ["GetData"] , summary = "센서 데이터 수신")
 async def create_sensor_data(data : schemas.SensorDataCreate) :
     try :
         insert_data = data.model_dump()
-        response = supabase.table("sensordata").insert(insert_data).execute()
+        response = supabase.table("sensor_data").insert(insert_data).execute()
         
         if len(response.data) == 0 :
             raise HTTPException(status_code = 400 , detail = "데이터 삽입에 실패했습니다.")
@@ -243,9 +252,8 @@ async def create_sensor_data(data : schemas.SensorDataCreate) :
     except Exception as err :
         print(f"[/sensordata] Error : {err}")
         raise HTTPException(status_code = 500 , detail = "서버 내부 오류가 발생했습니다.")
-
 """
-# 기존은 센서 데이터가 올때마다 DB 을 확인함
+
 @app.post("/sensordata/" , response_model = schemas.SensorData , tags = ["GetData"] , summary = "센서 데이터 수신")
 async def create_sensor_data(data : schemas.SensorDataCreate , db : Session = Depends(get_database)) :
     db_data = crud.create_sensor_data(db = db , data = data)
@@ -255,7 +263,6 @@ async def create_sensor_data(data : schemas.SensorDataCreate , db : Session = De
     response_data = schemas.SensorData.from_orm(db_data)
     await manager.broadcast(response_data.model_dump_json())
     return db_data
-"""
 
 # 차트를 그리기 위한 데이터 전달 엔드포인트
 @app.get("/devices/{device_id}/historical-data" , response_model = List[schemas.SensorData] , tags = ["Charts"] , summary = "장치 데이터 수신(특정 기간)")
