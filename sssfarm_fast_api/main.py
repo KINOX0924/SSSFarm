@@ -46,7 +46,7 @@ app.add_middleware(
 app.mount("/static" , StaticFiles(directory = "sssfarm_fast_api/image") , name = "static")
 
 """
-# supabase 클라이언트를 앱 시작 시 한번만 생성
+# supabase 클라이언트를 앱 시작 시 한번만 생성 => 작동하지 않음 => 코드 원상복구 진행
 supabase_url : str = os.environ.get("SUPABASE_URL")
 supabase_key : str = os.environ.get("SUPABASE_KEY")
 supabase : Client = create_client(supabase_url , supabase_key)
@@ -238,6 +238,7 @@ def manual_control_device(device_id : int , control_data : schemas.ManualControl
 # ESP32(장치) 연결 엔드포인트
 # ESP32 또는 IOT 장치가 센서 데이터를 서버로 전송하는 엔드 포인트
 """
+# 전송 지연 문제를 해결하기 위해서 센서 데이터를 DB 서버로 전송하는 엔드 포인트를 수정했으나 호전되지 않음
 @app.post("/sensordata/" , tags = ["GetData"] , summary = "센서 데이터 수신")
 async def create_sensor_data(data : schemas.SensorDataCreate) :
     try :
