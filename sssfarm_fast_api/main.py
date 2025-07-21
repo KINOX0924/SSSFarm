@@ -312,12 +312,38 @@ def read_device_images(device_id : int , skip : int = 0 , limit : int = 20 , db 
 def create_user_preset(preset : schemas.UserPresetCreate , db : Session = Depends(get_database) , current_user : models.User = Depends(auth.get_current_user)) :
     if preset.user_id != current_user.user_id :
         raise HTTPException(status_code = status.HTTP_403_FORBIDDEN , detail = "본인 프리셋만 생성할 수 있습니다.")
-    return crud.create_user_preset(db = db , preset = preset)
+    return crud.create_user_preset(db = db , preset = preset) 
 
 @app.get("/users/{user_id}/user-presets/" , response_model = List[schemas.UserPreset] , tags = ["Presets"] , summary = "사용자 프리셋 전체 조회(ID 번호)")
 def read_user_presets(user_id : int , db : Session = Depends(get_database)) :
     presets = crud.get_user_presets_by_userid(db , user_id = user_id)
     return presets
+
+# 사용자 프리셋 편집 엔드 포인트
+@app.post("/user-presets/{preset_id}" , response_model = schemas.Userpreset , tags = ["Presets"] , summary = "사용자 프리셋 편집(권한 필요)")
+def update_user_preset(preset_id : int , preset_update : schemas.UserPresetUpdate , db : Session = Depends(get_database) , current_user : models.User = Depends(auth.get_current_user)) :
+    db_preset = crud.get_user_preset(db , preset_id = preset_id)
+    
+    if db_preset is None :
+        raise HTTPException(status_code = 404 , detail = "해당 프리셋을 찾을 수 없습니다.")
+    
+    if db_preset.user_id != current_user.user_id :
+        raise HTTPException(status_code = status.HTTP_403_FORBIDDEN , detail = "이 프리셋을 수정할 권한이 없습니다.")
+    
+    return crud.update_user_preset(db = db , preset_id = preset_id , preset_update = preset_update)
+
+# 사용자 프리셋 삭제 엔드 포인트
+@app.delete("/user-presets/{preset_id}" , tags = ["Presets"] , summary = "사용자 프리셋 삭제")
+def delete_user_preset(preset_id : int , db : Session = Depends(get_database) , current_user : models.User = Depends(auth.get_current_user)) :
+    db_preset = crud.get_user_preset(db , preset_id = preset_id)
+    if db_preset is None :
+        raise HTTPException(status_code = 404 , detail = "해당 프리셋을 찾을 수 없습니다.")
+    
+    if db_preset.user_id != current_user.user_id :
+        raise HTTPException(status_code = status.HTTP_403_FORBIDDEN , detail = "이 프리셋을 삭제할 권한이 없습니다.")
+    
+    crud.delete_user_preset(db = db , preset_id = preset_id)
+    return {"message" : "프리셋이 성공적으로 삭제되었습니다."}
 
 @app.get("/health")
 def health_check() :

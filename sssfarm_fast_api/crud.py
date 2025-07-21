@@ -217,6 +217,31 @@ def get_user_preset(db : Session , preset_id : int) :
 def get_user_presets_by_userid(db : Session , user_id : int) :
     return db.query(models.UserPreset).filter(models.UserPreset.user_id == user_id).all()
 
+# user_preset 업데이트
+def update_user_preset(db : Session , preset_id : int , preset_update : schemas.UserPresetUpdate) :
+    db_preset = get_user_preset(db , preset_id = preset_id)
+    if not db_preset :
+        return None
+    
+    update_data = preset_update.model_dump(exclude_unset = True)
+    
+    for key , value in update_data.items() :
+        setattr(db_preset , key , value)
+        
+    db.commit()
+    db.refresh(db_preset)
+    return db_preset
+
+# user_preset 삭제
+def delete_user_preset(db : Session , preset_id : int) :
+    db_preset = get_user_preset(db , preset_id = preset_id)
+    if not db_preset :
+        return None
+    
+    db.delete(db_preset)
+    db.commit()
+    return db_preset
+
 # PLANTPRESET CRUD
 # 개발자 프리셋을 생성(저장)
 def create_plant_preset(db : Session , preset : schemas.PlantPresetCreate) :

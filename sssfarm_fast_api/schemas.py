@@ -72,6 +72,21 @@ class UserPreset(UserPresetBase) :
     class Config :
         from_attributes = True
 
+class UserPresetUpdate(BaseModel) :
+    preset_name                : Optional[str] = None
+    target_temperature_min     : Optional[Decimal] = None
+    target_temperature_max     : Optional[Decimal] = None
+    target_humidity_min        : Optional[Decimal] = None
+    target_humidity_max        : Optional[Decimal] = None
+    target_soil_moisture_1_min : Optional[int] = None
+    target_soil_moisture_1_max : Optional[int] = None
+    target_soil_moisture_2_min : Optional[int] = None
+    target_soil_moisture_2_max : Optional[int] = None
+    darkness_threshold         : Optional[int] = None
+    led_level                  : Optional[int] = None
+    light_start_hour           : Optional[int] = None
+    light_end_hour             : Optional[int] = None
+
 
 # PLANT PRESET SCHEMAS
 class PlantPresetBase(BaseModel) :
