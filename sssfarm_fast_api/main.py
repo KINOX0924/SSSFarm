@@ -320,7 +320,7 @@ def read_user_presets(user_id : int , db : Session = Depends(get_database)) :
     return presets
 
 # 사용자 프리셋 편집 엔드 포인트
-@app.post("/user-presets/{preset_id}" , response_model = schemas.Userpreset , tags = ["Presets"] , summary = "사용자 프리셋 편집(권한 필요)")
+@app.post("/user-presets/{preset_id}" , response_model = schemas.UserPreset , tags = ["Presets"] , summary = "사용자 프리셋 편집(권한 필요)")
 def update_user_preset(preset_id : int , preset_update : schemas.UserPresetUpdate , db : Session = Depends(get_database) , current_user : models.User = Depends(auth.get_current_user)) :
     db_preset = crud.get_user_preset(db , preset_id = preset_id)
     
