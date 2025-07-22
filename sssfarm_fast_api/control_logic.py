@@ -106,10 +106,10 @@ def run_control_logic_for_device(db : Session , device_id : int) :
     min_soil_1  = active_preset.target_soil_moisture_1_min if preset_type == "user" else active_preset.recomm_soil_moisture_1_min
     max_soil_1  = active_preset.target_soil_moisture_1_max if preset_type == "user" else active_preset.recomm_soil_moisture_1_max
     
-    if latest_data.soil_moisture_1 < min_soil_1 :
+    if latest_data.soil_moisture_1 > min_soil_1 :
         auto_pump_1_state = "ON"
         print(f"[제어] | {device.device_name} 급수 펌프 1 작동")
-    elif latest_data.soil_moisture_1 > max_soil_1 :
+    elif latest_data.soil_moisture_1 < max_soil_1 :
         auto_pump_1_state = "OFF"
         print(f"[제어] | {device.device_name} 급수 펌프 1 정지")
         
@@ -145,10 +145,10 @@ def run_control_logic_for_device(db : Session , device_id : int) :
     min_soil_2  = active_preset.target_soil_moisture_2_min if preset_type == "user" else active_preset.recomm_soil_moisture_2_min
     max_soil_2  = active_preset.target_soil_moisture_2_max if preset_type == "user" else active_preset.recomm_soil_moisture_2_max
     
-    if latest_data.soil_moisture_2 < min_soil_2 :
+    if latest_data.soil_moisture_2 > min_soil_2 :
         auto_pump_2_state = "ON"
         print(f"[제어] | {device.device_name} 급수 펌프 2 작동")
-    elif latest_data.soil_moisture_2 > max_soil_2 :
+    elif latest_data.soil_moisture_2 < max_soil_2 :
         auto_pump_2_state = "OFF"
         print(f"[제어] | {device.device_name} 급수 펌프 2 정지")
         
