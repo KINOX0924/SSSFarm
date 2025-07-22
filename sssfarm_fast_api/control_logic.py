@@ -73,9 +73,11 @@ def run_control_logic_for_device(db : Session , device_id : int) :
     elif latest_data.temperature < min_temp and latest_data.humidity < min_humidity :
         auto_fan_state = "OFF"
         print(f"[제어] | {device.device_name} 쿨링팬 정지")
+    else :
+        auto_fan_state = device.target_fan_state
         
     # 팬 제어 수동/자동 결정
-    final_fan_state = None
+    final_fan_state = auto_fan_state
     is_manual_fan  = device.override_fan_state is not None
     
     if is_manual_fan :
@@ -92,7 +94,7 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         
         action_type = f"쿨링팬 작동 {final_fan_state}"
         
-        if is_manual_fan :
+        if is_manual_fan and device.override_fan_state is not None :
             trigger = f"사용자 수동 작동"
         else : 
             trigger = f"온도 또는 습도 상태 {'과다' if final_fan_state == 'ON' else '적절'}"
@@ -103,7 +105,8 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         
     # 펌프 제어 로직 함수
     # 펌프 1 제어 로직
-    auto_pump_1_state = device.target_pump_state_1
+    current_pump_1_state = device.target_pump_state_1
+    auto_pump_1_state = current_pump_1_state
     min_soil_1  = active_preset.target_soil_moisture_1_min if preset_type == "user" else active_preset.recomm_soil_moisture_1_min
     max_soil_1  = active_preset.target_soil_moisture_1_max if preset_type == "user" else active_preset.recomm_soil_moisture_1_max
     
@@ -115,7 +118,7 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         print(f"[제어] | {device.device_name} 급수 펌프 1 정지")
         
     # 수동 제어 여부를 반영하여 최종 목표 상태 설정
-    final_pump_1_state = None
+    final_pump_1_state = auto_pump_1_state
     is_manual_pump_1     = device.override_pump_state_1 is not None
     
     if is_manual_pump_1 :
@@ -133,7 +136,7 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         
         action_type = f"급수 펌프 1 작동 {final_pump_1_state}"
         
-        if is_manual_pump_1 :
+        if is_manual_pump_1 and device.override_pump_state_1 is not None :
             trigger = f"사용자 수동 작동"
         else :
             trigger = f"토양 1 수분 {'부족' if final_pump_1_state == 'ON' else '충분'}"
@@ -142,7 +145,8 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         crud.create_action_log(db , action = log_data)
         
     # 펌프 2 제어 로직
-    auto_pump_2_state = device.target_pump_state_2
+    current_pump_2_state = device.target_pump_state_2
+    auto_pump_2_state = current_pump_2_state
     min_soil_2  = active_preset.target_soil_moisture_2_min if preset_type == "user" else active_preset.recomm_soil_moisture_2_min
     max_soil_2  = active_preset.target_soil_moisture_2_max if preset_type == "user" else active_preset.recomm_soil_moisture_2_max
     
@@ -154,8 +158,8 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         print(f"[제어] | {device.device_name} 급수 펌프 2 정지")
         
     # 수동 제어 여부를 반영하여 최종 목표 상태 설정
-    final_pump_2_state = None
-    is_manual_pump_2     = device.override_pump_state_2 is not None
+    final_pump_2_state = auto_pump_2_state
+    is_manual_pump_2   = device.override_pump_state_2 is not None
     
     if is_manual_pump_2 :
         final_pump_2_state = device.override_pump_state_2
@@ -172,7 +176,7 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         
         action_type = f"급수 펌프 2 작동 {final_pump_2_state}"
         
-        if is_manual_pump_2 :
+        if is_manual_pump_2 and device.override_pump_state_2 is not None :
             trigger = f"사용자 수동 작동"
         else :
             trigger = f"토양 2 수분 {'부족' if final_pump_2_state == 'ON' else '충분'}"
@@ -194,11 +198,11 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         if is_time_to_light and is_dark_enough :
             auto_led_state = "ON"
             print(f"[제어] | {device.device_name} 생장등 작동")
-        elif is_time_to_light == False or is_dark_enough == False :
-            auto_led_state = "OFF"
-            print(f"[제어] | {device.device_name} 생장등 정지")
+        # elif is_time_to_light == False or is_dark_enough == False :
+        #     auto_led_state = "OFF"
+        #     print(f"[제어] | {device.device_name} 생장등 정지")
         
-    final_led_state = None
+    final_led_state = auto_led_state
     is_manual_led = device.override_led_state is not None
     
     if is_manual_led :
@@ -206,8 +210,8 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         if auto_led_state == "OFF" :
             device.override_led_state = None
             print(f"[제어] | 적용된 프리셋 설정 값에 도달하여 LED 작동 정지 , 수동 제어 해제")
-    else :
-        final_led_state = auto_led_state
+    # else :
+    #     final_led_state = auto_led_state
         
     if device.target_led_state != final_led_state :
         device.target_led_state = final_led_state
@@ -215,7 +219,7 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         
         action_type = f"LED 작동 {final_led_state}"
         
-        if is_manual_led :
+        if is_manual_led and device.override_led_state is not None :
             trigger = f"사용자 수동 작동"
         else :
             trigger = f"조도 및 작동 시간 {'충족' if final_led_state == 'ON' else '불충분'}"
