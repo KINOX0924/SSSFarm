@@ -68,7 +68,7 @@ def control_loop() :
     while True :
         # n 초 대기 후 다시 반복
         # 타임시간 2초 -> 30초로 수정
-        time.sleep(30)
+        time.sleep(1)
         
         # 매번 새로운 DB 세션을 생성하여 작업 수행
         db = SessionLocal()
