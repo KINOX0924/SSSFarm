@@ -65,11 +65,12 @@ def run_control_logic_for_device(db : Session , device_id : int) :
     max_temp = active_preset.target_temperature_max if preset_type == "user" else active_preset.recomm_temperature_max
     min_temp = active_preset.target_temperature_min if preset_type == "user" else active_preset.recomm_temperature_min
     max_humidity = active_preset.target_humidity_max if preset_type == "user" else active_preset.recomm_humidity_max
+    min_humidity = active_preset.target_humidity_min if preset_type == "user" else active_preset.recomm_humidity_min
     
     if latest_data.temperature > max_temp or latest_data.humidity > max_humidity :
         auto_fan_state = "ON"
         print(f"[제어] | {device.device_name} 쿨링팬 작동")
-    elif latest_data.temperature < min_temp :
+    elif latest_data.temperature < min_temp and latest_data.humidity < min_humidity :
         auto_fan_state = "OFF"
         print(f"[제어] | {device.device_name} 쿨링팬 정지")
         
