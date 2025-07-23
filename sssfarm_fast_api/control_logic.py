@@ -58,14 +58,13 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         return
     
     print(f"[제어] | {device.device_name} 장치 상태 판단 및 작동 시작")
-    
-    
+
     # 팬 제어 로직
     auto_fan_state = device.target_fan_state
-    max_temp     = float(active_preset.target_temperature_max if preset_type == "user" else active_preset.recomm_temperature_max)
-    min_temp     = float(active_preset.target_temperature_min if preset_type == "user" else active_preset.recomm_temperature_min)
-    max_humidity = float(active_preset.target_humidity_max if preset_type == "user" else active_preset.recomm_humidity_max)
-    min_humidity = float(active_preset.target_humidity_min if preset_type == "user" else active_preset.recomm_humidity_min)
+    max_temp     = int(active_preset.target_temperature_max if preset_type == "user" else active_preset.recomm_temperature_max)
+    min_temp     = int(active_preset.target_temperature_min if preset_type == "user" else active_preset.recomm_temperature_min)
+    max_humidity = int(active_preset.target_humidity_max if preset_type == "user" else active_preset.recomm_humidity_max)
+    min_humidity = int(active_preset.target_humidity_min if preset_type == "user" else active_preset.recomm_humidity_min)
     
     if latest_data.temperature > max_temp or latest_data.humidity > max_humidity :
         auto_fan_state = "ON"
