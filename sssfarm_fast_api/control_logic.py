@@ -69,10 +69,8 @@ def run_control_logic_for_device(db : Session , device_id : int) :
     
     if latest_data.temperature > max_temp or latest_data.humidity > max_humidity :
         auto_fan_state = "ON"
-        print(f"[제어] | {device.device_name} 쿨링팬 작동")
     elif latest_data.temperature < min_temp and latest_data.humidity < min_humidity :
         auto_fan_state = "OFF"
-        print(f"[제어] | {device.device_name} 쿨링팬 정지")
     else :
         auto_fan_state = device.target_fan_state
         
@@ -112,10 +110,8 @@ def run_control_logic_for_device(db : Session , device_id : int) :
     
     if latest_data.soil_moisture_1 > min_soil_1 :
         auto_pump_1_state = "ON"
-        print(f"[제어] | {device.device_name} 급수 펌프 1 작동")
     elif latest_data.soil_moisture_1 < max_soil_1 :
         auto_pump_1_state = "OFF"
-        print(f"[제어] | {device.device_name} 급수 펌프 1 정지")
         
     # 수동 제어 여부를 반영하여 최종 목표 상태 설정
     final_pump_1_state = auto_pump_1_state
@@ -152,10 +148,8 @@ def run_control_logic_for_device(db : Session , device_id : int) :
     
     if latest_data.soil_moisture_2 > min_soil_2 :
         auto_pump_2_state = "ON"
-        print(f"[제어] | {device.device_name} 급수 펌프 2 작동")
     elif latest_data.soil_moisture_2 < max_soil_2 :
         auto_pump_2_state = "OFF"
-        print(f"[제어] | {device.device_name} 급수 펌프 2 정지")
         
     # 수동 제어 여부를 반영하여 최종 목표 상태 설정
     final_pump_2_state = auto_pump_2_state
@@ -197,7 +191,6 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         
         if is_time_to_light and is_dark_enough :
             auto_led_state = "ON"
-            print(f"[제어] | {device.device_name} 생장등 작동")
         # elif is_time_to_light == False or is_dark_enough == False :
         #     auto_led_state = "OFF"
         #     print(f"[제어] | {device.device_name} 생장등 정지")
