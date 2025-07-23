@@ -68,7 +68,7 @@ def run_control_logic_for_device(db : Session , device_id : int) :
     
     if latest_data.temperature > max_temp or latest_data.humidity > max_humidity :
         auto_fan_state = "ON"
-    elif (latest_data.temperature > min_temp or latest_data.temperature < max_temp) or (latest_data.humidity > min_humidity or latest_data.humidity < max_humidity) :
+    elif latest_data.temperature < min_temp or latest_data.humidity < min_humidity :
         auto_fan_state = "OFF"
     else :
         auto_fan_state = device.target_fan_state
