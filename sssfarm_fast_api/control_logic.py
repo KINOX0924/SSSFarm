@@ -4,11 +4,15 @@
 주기적으로 실행되며 , 센서 데이터와 프리셋를 비교하여 장치의 목표 상태를 결졍하고 DB 에 업데이트함
 """
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime , timedelta
 from . import crud , models , schemas
 
 # 급수통 수위 센서 임계값 (수정 가능함 , 프리셋 설정이 아닌 하드 세팅)
 WATER_LEVEL_THRESHOLD = 10
+
+# 펌프 작동 시간 및 쿨다운 설정
+PUMP_RUN_DURATION = timedelta(seconds = 10) # 폄프 작동 시간
+PUMP_COOLDOWN     = timedelta(seconds = 30) # 펌프 대기 시간
 
 # 특정 기기에 대한 자동 제어 로직을 실행
 def run_control_logic_for_device(db : Session , device_id : int) :
@@ -99,7 +103,73 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         log_data = schemas.ActionLogCreate(device_id = device_id , action_type = action_type , action_trigger = trigger)
         crud.create_action_log(db , action = log_data)
         
+    
+    def process_pump_logic(pump_index : int) :
+        target_state_attr     = f"target_pump_state_{pump_index}"
+        override_state_attr   = f"override_pump_state_{pump_index}"
+        last_active_time_attr = f"pump_{pump_index}_last_active_time"
+        soil_moisture_attr    = f"soil_moisture_{pump_index}"
+        min_soil_attr         = f"target_soil_moisture_{pump_index}_min" if preset_type == "user" else f"recomm_soil_moisture_{pump_index}_min"
         
+        current_state         = getattr(device , target_state_attr)
+        override_state        = getattr(device , override_state_attr)
+        last_active_time     = getattr(device , last_active_time_attr)
+        min_soil_threshold    = getattr(active_preset , min_soil_attr)
+        current_soil_moisture = getattr(latest_data , soil_moisture_attr)
+        
+        now = datetime.now()
+        new_state = current_state
+        trigger_reason = ""
+        
+        # 수동 제어 로직
+        if override_state is not None:
+            trigger_reason = "사용자 수동 작동"
+            if override_state == "ON":
+                time_since_last_on = (now - last_active_time).total_seconds() if last_active_time else float('inf')
+                if time_since_last_on < (PUMP_RUN_DURATION + PUMP_COOLDOWN):
+                    print(f"[경고] | 펌프 {pump_index} 쿨다운 중 : 수동 작동 불가함")
+                    new_state = "OFF"
+                else:
+                    new_state = "ON"
+            else:
+                new_state = "OFF"
+            
+            setattr(device, override_state_attr, None)
+
+        # 자동 제어 로직
+        else:
+            time_since_last_on = (now - last_active_time).total_seconds() if last_active_time else float('inf')
+
+            # 펌프를 꺼야 하는 조건: 작동 시간이 N초를 넘었을 때
+            if current_state == "ON" and time_since_last_on >= PUMP_RUN_DURATION:
+                new_state = "OFF"
+                trigger_reason = f"자동 작동 시간({PUMP_RUN_DURATION}초) 도달"
+            
+            # 펌프를 켜야 하는 조건: 토양이 건조하고 쿨다운이 끝났을 때
+            elif current_state == "OFF":
+                is_cooldown = time_since_last_on < (PUMP_RUN_DURATION + PUMP_COOLDOWN)
+                is_dry = current_soil_moisture is not None and current_soil_moisture > min_soil_threshold
+
+                if not is_cooldown and is_dry:
+                    new_state = "ON"
+                    trigger_reason = f"토양 {pump_index} 수분 부족"
+        
+        # 상태 변경 시 DB 업데이트 및 로그 생성
+        if current_state != new_state:
+            setattr(device, target_state_attr, new_state)
+            print(f"[제어] | 급수 펌프 {pump_index} 작동 상태를 {new_state} (으)로 변경합니다.")
+
+            if new_state == "ON":
+                setattr(device, last_active_time_attr, now)
+            
+            action_type = f"급수 펌프 {pump_index} 작동 {new_state}"
+            log_data = schemas.ActionLogCreate(device_id=device.device_id, action_type=action_type, action_trigger=trigger_reason)
+            crud.create_action_log(db, action=log_data)
+
+    process_pump_logic(1)
+    process_pump_logic(2)
+        
+    """
     # 펌프 제어 로직 함수
     # 펌프 1 제어 로직
     current_pump_1_state = device.target_pump_state_1
@@ -176,6 +246,7 @@ def run_control_logic_for_device(db : Session , device_id : int) :
             
         log_data = schemas.ActionLogCreate(device_id = device_id , action_type = action_type , action_trigger = trigger)
         crud.create_action_log(db , action = log_data)
+    """
     
     
     # LED 제어 로직
