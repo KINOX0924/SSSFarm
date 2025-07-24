@@ -4,11 +4,13 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, User, Lock, Mail } from "lucide-react"
+import { Eye, EyeOff, User, Lock, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { login, saveToken, saveUserInfo, getCurrentUser, isAuthenticated } from "@/lib/api/auth"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -18,156 +20,171 @@ export default function LoginPage() {
     password: "",
   })
   const [loading, setLoading] = useState(false)
-  const [currentCredentials, setCurrentCredentials] = useState({ username: 'admin', password: 'admin' })
+  const [error, setError] = useState<string | null>(null)
 
-  // 저장된 계정 정보 로드
+  // 이미 로그인되어 있으면 대시보드로 리다이렉트
   useEffect(() => {
-    const savedCredentials = localStorage.getItem('adminCredentials')
-    if (savedCredentials) {
-      try {
-        const parsedCredentials = JSON.parse(savedCredentials)
-        setCurrentCredentials(parsedCredentials)
-      } catch (e) {
-        console.warn('저장된 계정 정보 로드 실패')
-      }
+    if (isAuthenticated()) {
+      router.push('/')
     }
-  }, [])
+  }, [router])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }))
+    // 입력 시 에러 메시지 제거
+    if (error) {
+      setError(null)
+    }
   }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
 
     // 간단한 유효성 검사
     if (!formData.username || !formData.password) {
-      alert("아이디와 비밀번호를 입력해주세요.")
+      setError("아이디와 비밀번호를 입력해주세요.")
       setLoading(false)
       return
     }
 
-    // 임시 로그인 처리 (실제로는 API 호출)
-    setTimeout(() => {
-      console.log("로그인 시도:", { username: formData.username, password: formData.password })
+    try {
+      // API 로그인 시도
+      const loginResponse = await login({
+        username: formData.username,
+        password: formData.password
+      })
 
-      // 저장된 계정 정보 확인
-      const savedCredentials = localStorage.getItem('adminCredentials')
-      let adminCredentials = { username: 'admin', password: 'admin' }
-      
-      if (savedCredentials) {
-        try {
-          adminCredentials = JSON.parse(savedCredentials)
-        } catch (e) {
-          console.warn('저장된 계정 정보 파싱 실패')
+      console.log('Login response:', loginResponse)
+
+      // 토큰 저장
+      saveToken(loginResponse.access_token)
+
+      // 사용자 정보 가져오기 (username 전달)
+      try {
+        const userInfo = await getCurrentUser(loginResponse.access_token, formData.username)
+        if (userInfo) {
+          saveUserInfo(userInfo)
+          console.log('User info saved:', userInfo)
+        } else {
+          console.log('User info not available, using token only')
         }
+      } catch (userError) {
+        console.warn('Failed to fetch user info:', userError)
+        // 사용자 정보 가져오기 실패해도 로그인은 계속 진행
       }
 
-      // 인증 확인
-      if (formData.username === adminCredentials.username && formData.password === adminCredentials.password) {
+      // 로그인 성공
+      alert("로그인 성공!")
+      router.push("/")
+      
+    } catch (apiError) {
+      console.error('API Login failed:', apiError)
+      
+      // API 로그인 실패 시 로컬 인증 시도 (백업)
+      if (formData.username === 'admin' && formData.password === 'admin') {
+        console.log('Using fallback local authentication')
         sessionStorage.setItem('isLoggedIn', 'true')
-        alert("로그인 성공!")
+        alert("로그인 성공! (로컬 인증)")
         router.push("/")
       } else {
-        alert("아이디 또는 비밀번호가 올바르지 않습니다.")
+        setError(apiError instanceof Error ? apiError.message : '로그인에 실패했습니다.')
       }
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-12 h-12 text-4xl">🌱</div>
-            <h1 className="text-3xl font-bold text-gray-900">SSSFarm</h1>
-          </div>
-          <p className="text-gray-600">스마트 농장 관리 시스템</p>
-        </div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="text-4xl mb-4">🌱</div>
+          <CardTitle className="text-2xl font-bold">SSSFarm 로그인</CardTitle>
+          <p className="text-gray-600">스마트팜 관리 시스템에 로그인하세요</p>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <Alert className="mb-4" variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        {/* Login Card */}
-        <Card className="shadow-lg">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">로그인</CardTitle>
-            <p className="text-sm text-gray-600 text-center">
-              관리자 계정으로 로그인하여 농장을 관리하세요
-            </p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              {/* 아이디 */}
-              <div className="space-y-2">
-                <Label htmlFor="username">아이디</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder="아이디를 입력하세요"
-                    value={formData.username}
-                    onChange={(e) => handleInputChange("username", e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <Label htmlFor="username">아이디</Label>
+              <div className="relative mt-1">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="username"
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => handleInputChange("username", e.target.value)}
+                  placeholder="아이디를 입력하세요"
+                  className="pl-10"
+                  disabled={loading}
+                  required
+                />
               </div>
-
-              {/* 비밀번호 */}
-              <div className="space-y-2">
-                <Label htmlFor="password">비밀번호</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="비밀번호를 입력하세요"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
-                    className="pl-10 pr-10"
-                    required
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4 text-gray-400" />
-                    ) : (
-                      <Eye className="w-4 h-4 text-gray-400" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              {/* 제출 버튼 */}
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "처리 중..." : "로그인"}
-              </Button>
-            </form>
-
-            {/* 테스트 계정 안내 */}
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-gray-600 text-center">
-                <strong>관리자 계정:</strong> {currentCredentials.username} / {currentCredentials.password}
-              </p>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Footer */}
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>&copy; 2024 SSSFarm. All rights reserved.</p>
-        </div>
-      </div>
+            <div>
+              <Label htmlFor="password">비밀번호</Label>
+              <div className="relative mt-1">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  placeholder="비밀번호를 입력하세요"
+                  className="pl-10 pr-10"
+                  disabled={loading}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  disabled={loading}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={loading}
+            >
+              {loading ? "로그인 중..." : "로그인"}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center text-sm text-gray-600">
+            <p>테스트 계정:</p>
+            <p>아이디: admin / 비밀번호: admin</p>
+          </div>
+
+          <div className="mt-4 text-center">
+            <p className="text-xs text-gray-500">
+              API 인증 상태: 
+              <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+                활성화됨
+              </span>
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              API 우선, 로컬 백업
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

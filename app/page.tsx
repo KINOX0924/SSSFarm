@@ -12,145 +12,55 @@ import {
   Droplets,
   Gauge,
   Sprout,
-  Edit3,
   Power,
   Lightbulb,
   Fan,
   WifiOff,
-  Check,
-  X,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-
-// 기기 데이터
-const devices = [
-  { id: "greenhouse-1", name: "온실 A동", status: "online" },
-  { id: "greenhouse-2", name: "온실 B동", status: "online" },
-  { id: "greenhouse-3", name: "온실 C동", status: "offline" },
-]
-
-// 센서 데이터
-const sensorData = {
-  "greenhouse-1": {
-    light: { value: 850, unit: "lux", status: "normal" },
-    humidity: { value: 65, unit: "%", status: "normal" },
-    waterLevel: { value: 78, unit: "%", status: "normal" },
-    soilMoisture1: { value: 42, unit: "%", status: "normal" },
-    soilMoisture2: { value: 58, unit: "%", status: "normal" },
-  },
-  "greenhouse-2": {
-    light: { value: 920, unit: "lux", status: "high" },
-    humidity: { value: 58, unit: "%", status: "normal" },
-    waterLevel: { value: 34, unit: "%", status: "low" },
-    soilMoisture1: { value: 67, unit: "%", status: "normal" },
-    soilMoisture2: { value: 35, unit: "%", status: "normal" },
-  },
-  "greenhouse-3": {
-    light: { value: 0, unit: "lux", status: "offline" },
-    humidity: { value: 0, unit: "%", status: "offline" },
-    waterLevel: { value: 0, unit: "%", status: "offline" },
-    soilMoisture1: { value: 0, unit: "%", status: "offline" },
-    soilMoisture2: { value: 0, unit: "%", status: "offline" },
-  },
-}
-
-// 이벤트 로그
-const eventLogs = {
-  "greenhouse-1": [
-    { time: "14:30", trigger: "토양습도 센서", action: "토마토 화분 급수 시작 (습도 42% → 70%)" },
-    { time: "13:15", trigger: "자동 스케줄", action: "LED 조명 자동 점등" },
-    { time: "12:00", trigger: "조도 센서", action: "조도 850lux 감지, 환기팬 작동" },
-    { time: "11:45", trigger: "온도 센서", action: "온도 28°C 도달, 환기팬 가동" },
-    { time: "11:30", trigger: "물탱크 센서", action: "물 잔량 78% 확인" },
-    { time: "11:15", trigger: "시스템", action: "센서 데이터 수집 완료" },
-    { time: "11:00", trigger: "사용자", action: "상추 급수 수동 정지" },
-    { time: "10:45", trigger: "토양습도 센서", action: "상추 화분 급수 완료 (습도 58%)" },
-  ],
-  "greenhouse-2": [
-    { time: "14:25", trigger: "물탱크 센서", action: "물 잔량 34% 경고 알림" },
-    { time: "13:50", trigger: "습도 센서", action: "습도 58% 적정 수준 유지" },
-    { time: "12:30", trigger: "시스템", action: "최적 환경 조건 달성" },
-    { time: "11:20", trigger: "자동 스케줄", action: "오이 화분 급수 시작" },
-    { time: "11:05", trigger: "온도 센서", action: "온도 26°C, 환기팬 정지" },
-    { time: "10:50", trigger: "조도 센서", action: "조도 920lux, LED 조명 자동 소등" },
-    { time: "10:30", trigger: "사용자", action: "파프리카 급수 수동 시작" },
-    { time: "10:15", trigger: "시스템", action: "전체 센서 상태 점검 완료" },
-  ],
-  "greenhouse-3": [
-    { time: "14:00", trigger: "시스템", action: "네트워크 연결 끊어짐" },
-    { time: "13:30", trigger: "시스템", action: "센서 응답 없음 - 점검 필요" },
-    { time: "12:45", trigger: "시스템", action: "통신 불안정 감지" },
-    { time: "12:00", trigger: "시스템", action: "마지막 정상 데이터 수신" },
-    { time: "11:30", trigger: "시스템", action: "연결 재시도 실패" },
-  ],
-}
-
-// 기기 제어 상태
-const initialDeviceControls = {
-  "greenhouse-1": {
-    ledLight: true,
-    waterPump1: false,
-    waterPump2: true,
-    ventilationFan: true,
-  },
-  "greenhouse-2": {
-    ledLight: false,
-    waterPump1: true,
-    waterPump2: false,
-    ventilationFan: false,
-  },
-  "greenhouse-3": {
-    ledLight: false,
-    waterPump1: false,
-    waterPump2: false,
-    ventilationFan: false,
-  },
-}
-
-// 센서 이름
-const initialSensorNames = {
-  "greenhouse-1": {
-    soil1: "토마토 화분",
-    soil2: "상추 화분",
-    pump1: "토마토 급수",
-    pump2: "상추 급수",
-  },
-  "greenhouse-2": {
-    soil1: "오이 화분",
-    soil2: "파프리카 화분",
-    pump1: "오이 급수",
-    pump2: "파프리카 급수",
-  },
-  "greenhouse-3": {
-    soil1: "화분 1",
-    soil2: "화분 2",
-    pump1: "급수펌프 1",
-    pump2: "급수펌프 2",
-  },
-}
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useDashboardDevices, useDeviceSensorData, useDeviceControlStatus, useDeviceEventLogs, useSystemReset } from "@/hooks/useDashboard"
+import { logout as apiLogout, isAuthenticated, getStoredToken } from "@/lib/api/auth"
 
 export default function DashboardPage() {
   const router = useRouter()
   const [activeNav, setActiveNav] = useState("dashboard")
-  const [currentDevice, setCurrentDevice] = useState("greenhouse-1")
-  const [deviceControls, setDeviceControls] = useState(initialDeviceControls)
-  const [sensorNames, setSensorNames] = useState(initialSensorNames)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [editingField, setEditingField] = useState("")
-  const [editValue, setEditValue] = useState("")
+  const [currentPositionId, setCurrentPositionId] = useState<number | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
-  // 로그인 상태 확인
+  // 대시보드 API 훅 사용
+  const { devices: allDevices, positions, loading: devicesLoading, error: devicesError, refetch: refetchDevices } = useDashboardDevices()
+  
+  // 현재 선택된 기기 ID (positions 목록은 실제로는 devices 목록)
+  const selectedDeviceId = currentPositionId
+  const selectedDevice = selectedDeviceId ? allDevices.find(d => d.device_id === selectedDeviceId) : null
+  
+  // 선택된 기기의 센서 데이터 (자동 갱신)
+  const { sensorData, loading: sensorLoading, error: sensorError, refetch: refetchSensorData } = useDeviceSensorData(selectedDeviceId, true)
+  
+  // 선택된 기기의 제어 상태
+  const { controlStatus, loading: controlLoading, error: controlError, refetch: refetchControlStatus, controlDevice } = useDeviceControlStatus(selectedDeviceId)
+  
+  // 선택된 기기의 이벤트 로그
+  const { logs, loading: logsLoading, error: logsError, refetch: refetchLogs } = useDeviceEventLogs(selectedDeviceId)
+  
+  // 전체 시스템 초기화
+  const { resetAllDevices, loading: resetLoading, error: resetError } = useSystemReset()
+  
+  // API 연결 상태 (기기 목록이 있으면 연결됨으로 간주)
+  const isConnected = allDevices.length > 0
+
+  // 로그인 상태 확인 (API 기반)
   useEffect(() => {
     const checkLoginStatus = () => {
-      const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true'
-      if (!loggedIn) {
+      const authenticated = isAuthenticated()
+      if (!authenticated) {
         router.push('/login')
       } else {
         setIsLoggedIn(true)
@@ -160,6 +70,13 @@ export default function DashboardPage() {
     
     checkLoginStatus()
   }, [router])
+
+  // 첫 번째 기기를 기본으로 선택
+  useEffect(() => {
+    if (allDevices.length > 0 && !currentPositionId) {
+      setCurrentPositionId(allDevices[0].device_id)
+    }
+  }, [allDevices, currentPositionId])
 
   // 로딩 중이거나 로그인하지 않았으면 리턴
   if (isLoading || !isLoggedIn) {
@@ -192,69 +109,61 @@ export default function DashboardPage() {
     }
   }
 
-  // 현재 선택된 기기의 데이터
-  const currentSensorData = sensorData[currentDevice as keyof typeof sensorData]
-  const currentLogs = eventLogs[currentDevice as keyof typeof eventLogs]
-  const currentControls = deviceControls[currentDevice as keyof typeof deviceControls]
-  const currentNames = sensorNames[currentDevice as keyof typeof sensorNames]
-  const currentDeviceInfo = devices.find((d) => d.id === currentDevice)
-
-  // 제어 변경 핸들러
-  const handleControlChange = (controlName: string, value: boolean) => {
-    setDeviceControls((prev) => ({
-      ...prev,
-      [currentDevice]: {
-        ...prev[currentDevice as keyof typeof prev],
-        [controlName]: value,
-      },
-    }))
-  }
-
-  // 이름 편집
-  const handleEditName = (field: string, currentName: string) => {
-    setEditingField(field)
-    setEditValue(currentName)
-    setShowEditModal(true)
-  }
-
-  // 이름 저장
-  const handleSaveName = () => {
-    if (editValue.trim()) {
-      setSensorNames((prev) => ({
-        ...prev,
-        [currentDevice]: {
-          ...prev[currentDevice as keyof typeof prev],
-          [editingField]: editValue.trim(),
-        },
-      }))
+  // 기기 제어 핸들러
+  const handleControlChange = async (component: string, command: string) => {
+    if (!selectedDeviceId) {
+      alert("기기를 선택해주세요.")
+      return
     }
-    setShowEditModal(false)
-    setEditingField("")
-    setEditValue("")
-  }
-
-  // 전체 설정 초기화
-  const handleResetControls = () => {
-    if (confirm("모든 기기 설정을 초기화하시겠습니까?")) {
-      setDeviceControls((prev) => ({
-        ...prev,
-        [currentDevice]: {
-          ledLight: false,
-          waterPump1: false,
-          waterPump2: false,
-          ventilationFan: false,
-        },
-      }))
+    
+    try {
+      await controlDevice(component, command)
+      alert(`${component} ${command} 완료`)
+    } catch (error) {
+      alert("기기 제어에 실패했습니다. 다시 시도해주세요.")
     }
   }
 
-  const handleLogout = () => {
+  // 전체 시스템 초기화 핸들러
+  const handleSystemReset = async () => {
+    if (confirm("모든 기기를 현재 적용된 프리셋으로 초기화하시겠습니까?")) {
+      try {
+        await resetAllDevices(allDevices)
+        alert("전체 시스템이 초기화되었습니다.")
+      } catch (error) {
+        alert("초기화 중 오류가 발생했습니다.")
+      }
+    }
+  }
+
+  // 데이터 새로고침
+  const handleRefresh = () => {
+    refetchDevices()
+    refetchSensorData()
+    refetchLogs()
+  }
+
+  // 로그아웃 (API 기반)
+  const handleLogout = async () => {
     if (confirm("로그아웃 하시겠습니까?")) {
-      sessionStorage.removeItem('isLoggedIn')
-      alert("로그아웃 되었습니다.")
-      router.push('/login')
+      try {
+        const token = getStoredToken()
+        if (token) {
+          await apiLogout(token)
+        }
+        alert("로그아웃 되었습니다.")
+        router.push('/login')
+      } catch (error) {
+        console.error('Logout error:', error)
+        // 로그아웃 실패해도 로그인 페이지로 이동
+        alert("로그아웃 되었습니다.")
+        router.push('/login')
+      }
     }
   }
+
+  // 센서 데이터 처리 (최신 데이터 추출)
+  const latestSensorData = sensorData.length > 0 ? sensorData[sensorData.length - 1] : null
 
   // 상태별 색상 클래스
   const getStatusColor = (status: string) => {
@@ -272,6 +181,20 @@ export default function DashboardPage() {
     }
   }
 
+  // 에러 표시 컴포넌트
+  const ErrorAlert = ({ error, onRetry }: { error: string, onRetry: () => void }) => (
+    <Alert className="mb-4">
+      <AlertCircle className="h-4 w-4" />
+      <AlertDescription className="flex items-center justify-between">
+        <span>{error}</span>
+        <Button variant="outline" size="sm" onClick={onRetry}>
+          <RefreshCw className="w-4 h-4 mr-1" />
+          재시도
+        </Button>
+      </AlertDescription>
+    </Alert>
+  )
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
@@ -281,6 +204,9 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3" style={{marginTop: '12px'}}>
               <div className="text-2xl">🌱</div>
               <h1 className="text-xl font-bold text-gray-900">SSSFarm</h1>
+              {/* API 연결 상태 표시 */}
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} 
+                   title={isConnected ? 'API 연결됨' : 'API 연결 끊어짐'} />
             </div>
 
             <div className="flex items-center gap-4">
@@ -302,7 +228,30 @@ export default function DashboardPage() {
                     {label}
                   </Button>
                 ))}
+                
+                {/* API 테스트 링크 */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.push('/api-test')}
+                  className="gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                  title="API 연결 테스트"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  API 테스트
+                </Button>
               </div>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                className="gap-2"
+                disabled={devicesLoading || sensorLoading || logsLoading}
+              >
+                <RefreshCw className={`w-4 h-4 ${(devicesLoading || sensorLoading || logsLoading) ? 'animate-spin' : ''}`} />
+                새로고침
+              </Button>
 
               <div className="w-px h-6 bg-gray-300" />
 
@@ -331,21 +280,33 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Error Messages */}
+          {devicesError && <ErrorAlert error={devicesError} onRetry={refetchDevices} />}
+          {sensorError && <ErrorAlert error={sensorError} onRetry={refetchSensorData} />}
+          {logsError && <ErrorAlert error={logsError} onRetry={refetchLogs} />}
+
           {/* Device Selector */}
           <div className="mb-6">
             <label className="block text-sm font-medium mb-2">기기 선택</label>
-            <Select value={currentDevice} onValueChange={setCurrentDevice}>
+            <Select 
+              value={currentPositionId?.toString() || ""} 
+              onValueChange={(value) => setCurrentPositionId(parseInt(value))}
+              disabled={devicesLoading || allDevices.length === 0}
+            >
               <SelectTrigger className="w-64">
-                <SelectValue />
+                <SelectValue placeholder={
+                  devicesLoading ? "로딩 중..." : 
+                  allDevices.length === 0 ? "사용 가능한 기기가 없습니다" : 
+                  "기기를 선택하세요"
+                } />
               </SelectTrigger>
               <SelectContent>
-                {devices.map((device) => (
-                  <SelectItem key={device.id} value={device.id}>
+                {allDevices && allDevices.length > 0 && allDevices.map((device) => (
+                  <SelectItem key={device?.device_id || 'unknown'} value={device?.device_id?.toString() || ''}>
                     <div className="flex items-center gap-2">
-                      <div
-                        className={`w-2 h-2 rounded-full ${device.status === "online" ? "bg-green-500" : "bg-red-500"}`}
-                      />
-                      {device.name}
+                      <div className={`w-2 h-2 rounded-full ${device?.last_active ? 'bg-green-500' : 'bg-gray-400'}`} />
+                      {device?.device_name || '이름 없음'}
+                      {device?.location && <span className="text-xs text-gray-500">({device.location})</span>}
                     </div>
                   </SelectItem>
                 ))}
@@ -353,290 +314,293 @@ export default function DashboardPage() {
             </Select>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sensor Cards */}
-            <div className="lg:col-span-3 space-y-6">
-              {/* Sensor Data Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                {/* 조도 센서 */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-center h-6">
-                      <CardTitle className="text-sm font-medium">조도</CardTitle>
-                      <Sun className="w-5 h-5 text-yellow-500" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{currentSensorData.light.value}</div>
-                    <p className={`text-sm ${getStatusColor(currentSensorData.light.status)}`}>
-                      {currentSensorData.light.unit}
-                    </p>
-                  </CardContent>
-                </Card>
+          {allDevices.length === 0 && !devicesLoading && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-yellow-600" />
+                <span className="text-yellow-800 font-medium">기기 데이터가 없습니다</span>
+              </div>
+              <p className="text-yellow-700 text-sm mt-2">
+                API 서버에서 기기 데이터를 불러올 수 없습니다. 
+                <button 
+                  onClick={() => router.push('/api-test')}
+                  className="underline hover:no-underline"
+                >
+                  API 연결 테스트
+                </button>를 실행해보세요.
+              </p>
+            </div>
+          )}
 
-                {/* 습도 센서 */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-center h-6">
-                      <CardTitle className="text-sm font-medium">습도</CardTitle>
-                      <Droplets className="w-5 h-5 text-blue-500" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{currentSensorData.humidity.value}</div>
-                    <p className={`text-sm ${getStatusColor(currentSensorData.humidity.status)}`}>
-                      {currentSensorData.humidity.unit}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* 물탱크 */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-center h-6">
-                      <CardTitle className="text-sm font-medium">물탱크</CardTitle>
-                      <Gauge className="w-5 h-5 text-cyan-500" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{currentSensorData.waterLevel.value}</div>
-                    <p className={`text-sm ${getStatusColor(currentSensorData.waterLevel.status)}`}>
-                      {currentSensorData.waterLevel.unit}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* 토양 수분 1 */}
-                <Card className="group">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-center h-6">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <CardTitle
-                          className="text-sm font-medium cursor-pointer hover:text-blue-600 truncate"
-                          onClick={() => handleEditName("soil1", currentNames.soil1)}
-                        >
-                          {currentNames.soil1}
-                        </CardTitle>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-4 w-4 p-0 flex-shrink-0 opacity-60 hover:opacity-100"
-                          onClick={() => handleEditName("soil1", currentNames.soil1)}
-                        >
-                          <Edit3 className="w-3 h-3" />
-                        </Button>
+          {currentPositionId && (
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Sensor Cards */}
+              <div className="lg:col-span-3 space-y-6">
+                {/* Sensor Data Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                  {/* 온도 센서 */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-center h-6">
+                        <CardTitle className="text-sm font-medium">온도</CardTitle>
+                        <Sun className="w-5 h-5 text-orange-500" />
                       </div>
-                      <Sprout className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{currentSensorData.soilMoisture1.value}</div>
-                    <p className={`text-sm ${getStatusColor(currentSensorData.soilMoisture1.status)}`}>
-                      토양습도 {currentSensorData.soilMoisture1.unit}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* 토양 수분 2 */}
-                <Card className="group">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-center h-6">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <CardTitle
-                          className="text-sm font-medium cursor-pointer hover:text-blue-600 truncate"
-                          onClick={() => handleEditName("soil2", currentNames.soil2)}
-                        >
-                          {currentNames.soil2}
-                        </CardTitle>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-4 w-4 p-0 flex-shrink-0 opacity-60 hover:opacity-100"
-                          onClick={() => handleEditName("soil2", currentNames.soil2)}
-                        >
-                          <Edit3 className="w-3 h-3" />
-                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {sensorLoading ? "..." : (latestSensorData?.temperature?.toFixed(1) || 0)}
                       </div>
-                      <Sprout className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    </div>
+                      <p className="text-sm text-gray-600">
+                        °C
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* 습도 센서 */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-center h-6">
+                        <CardTitle className="text-sm font-medium">습도</CardTitle>
+                        <Droplets className="w-5 h-5 text-blue-500" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {sensorLoading ? "..." : (latestSensorData?.humidity?.toFixed(1) || 0)}
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        %
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* 조도 센서 */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-center h-6">
+                        <CardTitle className="text-sm font-medium">조도</CardTitle>
+                        <Sun className="w-5 h-5 text-yellow-500" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {sensorLoading ? "..." : (latestSensorData?.light_level || 0)}
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        lux
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* 물탱크 수위 */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-center h-6">
+                        <CardTitle className="text-sm font-medium">물탱크</CardTitle>
+                        <Gauge className="w-5 h-5 text-cyan-500" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {sensorLoading ? "..." : (latestSensorData?.water_level || 0)}
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        %
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* 토양 수분 1 */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-center h-6">
+                        <CardTitle className="text-sm font-medium">토양습도 1</CardTitle>
+                        <Sprout className="w-5 h-5 text-green-500" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {sensorLoading ? "..." : (latestSensorData?.soil_moisture_1 || 0)}
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        %
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* 토양 수분 2 */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-center h-6">
+                        <CardTitle className="text-sm font-medium">토양습도 2</CardTitle>
+                        <Sprout className="w-5 h-5 text-green-600" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {sensorLoading ? "..." : (latestSensorData?.soil_moisture_2 || 0)}
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        %
+                      </p>
+                    </CardContent>
+                  </Card>
+
+
+                </div>
+
+                {/* Event Log */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>이벤트 로그</CardTitle>
+                    <p className="text-sm text-gray-600">{selectedDevice?.device_name}의 최근 활동 내역</p>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{currentSensorData.soilMoisture2.value}</div>
-                    <p className={`text-sm ${getStatusColor(currentSensorData.soilMoisture2.status)}`}>
-                      토양습도 {currentSensorData.soilMoisture2.unit}
-                    </p>
+                    {logsLoading ? (
+                      <div className="text-center py-8">
+                        <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-gray-400" />
+                        <p className="text-gray-500">로그를 불러오는 중...</p>
+                      </div>
+                    ) : logs.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        이벤트 로그가 없습니다.
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">시간</th>
+                              <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">유형</th>
+                              <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">내용</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {logs.map((log) => (
+                              <tr key={log.log_id} className="border-b hover:bg-gray-50">
+                                <td className="py-3 px-4 text-sm font-medium text-gray-900 align-top">
+                                  {new Date(log.action_time).toLocaleTimeString('ko-KR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </td>
+                                <td className="py-3 px-4 text-sm text-gray-700 align-top">{log.action_trigger}</td>
+                                <td className="py-3 px-4 text-sm text-gray-700 align-top">{log.action_type}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Event Log */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>이벤트 로그</CardTitle>
-                  <p className="text-sm text-gray-600">{currentDeviceInfo?.name}의 최근 활동 내역</p>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">시간</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">트리거</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">작동내용</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {currentLogs.map((log, index) => (
-                          <tr key={index} className="border-b hover:bg-gray-50">
-                            <td className="py-3 px-4 text-sm font-medium text-gray-900 align-top">{log.time}</td>
-                            <td className="py-3 px-4 text-sm text-gray-700 align-top">{log.trigger}</td>
-                            <td className="py-3 px-4 text-sm text-gray-700 align-top">{log.action}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Control Panel */}
-            <div className="lg:col-span-1">
-              <Card className="sticky top-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Power className="w-5 h-5" />
-                    기기 제어
-                  </CardTitle>
-                  <p className="text-sm text-gray-600">{currentDeviceInfo?.name}</p>
-                </CardHeader>
-                <CardContent>
-                  {currentDeviceInfo?.status === "offline" ? (
-                    <div className="text-center py-8">
-                      <WifiOff className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">기기가 오프라인 상태입니다</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {/* LED 조명 */}
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <Lightbulb className="w-5 h-5 text-yellow-500" />
-                          <span className="text-sm">LED 조명</span>
-                        </div>
-                        <Switch
-                          checked={currentControls.ledLight}
-                          onCheckedChange={(checked) => handleControlChange("ledLight", checked)}
-                        />
+              {/* Control Panel */}
+              <div className="lg:col-span-1">
+                <Card className="sticky top-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Power className="w-5 h-5" />
+                      기기 제어
+                    </CardTitle>
+                    <p className="text-sm text-gray-600">{selectedDevice?.device_name}</p>
+                  </CardHeader>
+                  <CardContent>
+                    {devicesLoading ? (
+                      <div className="text-center py-8">
+                        <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-gray-400" />
+                        <p className="text-gray-500">기기 정보를 불러오는 중...</p>
                       </div>
-
-                      {/* 급수펌프 1 */}
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <Droplets className="w-5 h-5 text-blue-500" />
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="text-sm cursor-pointer hover:text-blue-600"
-                              onClick={() => handleEditName("pump1", currentNames.pump1)}
-                            >
-                              {currentNames.pump1}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-4 w-4 p-0 opacity-60 hover:opacity-100"
-                              onClick={() => handleEditName("pump1", currentNames.pump1)}
-                            >
-                              <Edit3 className="w-3 h-3" />
-                            </Button>
+                    ) : !controlStatus ? (
+                      <div className="text-center py-8">
+                        <WifiOff className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">연결된 기기가 없습니다</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {/* LED 조명 */}
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <Lightbulb className="w-5 h-5 text-yellow-500" />
+                            <span className="text-sm">LED 조명</span>
                           </div>
+                          <Switch
+                            checked={controlStatus?.LED || false}
+                            onCheckedChange={(checked) => {
+                              handleControlChange('LED', checked ? 'ON' : 'OFF')
+                            }}
+                            disabled={controlLoading}
+                          />
                         </div>
-                        <Switch
-                          checked={currentControls.waterPump1}
-                          onCheckedChange={(checked) => handleControlChange("waterPump1", checked)}
-                        />
-                      </div>
 
-                      {/* 급수펌프 2 */}
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <Droplets className="w-5 h-5 text-blue-700" />
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="text-sm cursor-pointer hover:text-blue-600"
-                              onClick={() => handleEditName("pump2", currentNames.pump2)}
-                            >
-                              {currentNames.pump2}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-4 w-4 p-0 opacity-60 hover:opacity-100"
-                              onClick={() => handleEditName("pump2", currentNames.pump2)}
-                            >
-                              <Edit3 className="w-3 h-3" />
-                            </Button>
+                        {/* 급수펌프 1 */}
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <Droplets className="w-5 h-5 text-blue-500" />
+                            <span className="text-sm">급수펌프 1</span>
                           </div>
+                          <Switch
+                            checked={controlStatus?.PUMP1 || false}
+                            onCheckedChange={(checked) => {
+                              handleControlChange('PUMP1', checked ? 'ON' : 'OFF')
+                            }}
+                            disabled={controlLoading}
+                          />
                         </div>
-                        <Switch
-                          checked={currentControls.waterPump2}
-                          onCheckedChange={(checked) => handleControlChange("waterPump2", checked)}
-                        />
-                      </div>
 
-                      {/* 환기팬 */}
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <Fan className="w-5 h-5 text-gray-500" />
-                          <span className="text-sm">환기팬</span>
+                        {/* 급수펌프 2 */}
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <Droplets className="w-5 h-5 text-blue-700" />
+                            <span className="text-sm">급수펌프 2</span>
+                          </div>
+                          <Switch
+                            checked={controlStatus?.PUMP2 || false}
+                            onCheckedChange={(checked) => {
+                              handleControlChange('PUMP2', checked ? 'ON' : 'OFF')
+                            }}
+                            disabled={controlLoading}
+                          />
                         </div>
-                        <Switch
-                          checked={currentControls.ventilationFan}
-                          onCheckedChange={(checked) => handleControlChange("ventilationFan", checked)}
-                        />
-                      </div>
 
-                      {/* 초기화 버튼 */}
-                      <div className="pt-4 border-t">
-                        <Button variant="outline" className="w-full bg-transparent" onClick={handleResetControls}>
-                          전체 설정 초기화
-                        </Button>
+                        {/* 환기팬 */}
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <Fan className="w-5 h-5 text-gray-500" />
+                            <span className="text-sm">환기팬</span>
+                          </div>
+                          <Switch
+                            checked={controlStatus?.FAN || false}
+                            onCheckedChange={(checked) => {
+                              handleControlChange('FAN', checked ? 'ON' : 'OFF')
+                            }}
+                            disabled={controlLoading}
+                          />
+                        </div>
+
+                        {/* 전체 설정 초기화 */}
+                        <div className="pt-4 border-t">
+                          <Button 
+                            variant="outline" 
+                            className="w-full" 
+                            onClick={handleSystemReset}
+                            disabled={resetLoading}
+                          >
+                            <RefreshCw className={`w-4 h-4 mr-2 ${resetLoading ? 'animate-spin' : ''}`} />
+                            전체 설정 초기화
+                          </Button>
+                        </div>
+
                       </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
-
-      {/* Edit Modal */}
-      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>이름 편집</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              placeholder="새 이름을 입력하세요"
-              maxLength={20}
-            />
-            <div className="flex gap-2 justify-end">
-              <Button onClick={handleSaveName}>
-                <Check className="w-4 h-4 mr-1" />
-                저장
-              </Button>
-              <Button variant="outline" onClick={() => setShowEditModal(false)}>
-                <X className="w-4 h-4 mr-1" />
-                취소
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

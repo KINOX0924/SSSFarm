@@ -19,133 +19,132 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
-
-// 기기 데이터
-const devices = [
-  { id: "all", name: "전체 기기" },
-  { id: "greenhouse-1", name: "온실 A동" },
-  { id: "greenhouse-2", name: "온실 B동" },
-  { id: "greenhouse-3", name: "온실 C동" },
-]
-
-// 로그 데이터
-const allLogs = [
-  {
-    id: 1,
-    deviceId: "greenhouse-1",
-    deviceName: "온실 A동",
-    date: "2024-01-09",
-    time: "14:30",
-    trigger: "토양습도 센서 임계값 도달 알림 (42% 이하)",
-    action: "토마토 화분 급수 시작 (습도 42% → 70%)",
-  },
-  {
-    id: 2,
-    deviceId: "greenhouse-1",
-    deviceName: "온실 A동",
-    date: "2024-01-09",
-    time: "13:15",
-    trigger: "자동 스케줄러 시간 기반 제어 실행",
-    action: "LED 조명 자동 점등",
-  },
-  {
-    id: 3,
-    deviceId: "greenhouse-1",
-    deviceName: "온실 A동",
-    date: "2024-01-09",
-    time: "12:00",
-    trigger: "조도 센서 측정값 기준치 초과 감지",
-    action: "조도 850lux 감지, 환기팬 작동",
-  },
-  {
-    id: 4,
-    deviceId: "greenhouse-2",
-    deviceName: "온실 B동",
-    date: "2024-01-09",
-    time: "14:25",
-    trigger: "물탱크 수위 센서 저수위 경고 발생",
-    action: "물 잔량 34% 경고 알림",
-  },
-  {
-    id: 5,
-    deviceId: "greenhouse-2",
-    deviceName: "온실 B동",
-    date: "2024-01-09",
-    time: "13:50",
-    trigger: "습도 센서 적정 범위 유지 확인",
-    action: "습도 58% 적정 수준 유지",
-  },
-  {
-    id: 6,
-    deviceId: "greenhouse-3",
-    deviceName: "온실 C동",
-    date: "2024-01-09",
-    time: "14:00",
-    trigger: "시스템 네트워크 연결 상태 오류",
-    action: "네트워크 연결 끊어짐",
-  },
-]
+import { getFormattedLogs, searchLogs, filterLogs, FrontendLog } from "@/lib/api/logs"
+import { get } from "@/lib/api/client"
+import { Device } from "@/lib/api/types"
+import { isAuthenticated, logout as apiLogout } from "@/lib/api/auth"
 
 export default function LogsPage() {
   // 모든 useState 훅을 최상단에 선언
   const [activeNav, setActiveNav] = useState("logs")
   const [selectedDevice, setSelectedDevice] = useState("all")
-  const [startDate, setStartDate] = useState("2024-01-08")
-  const [endDate, setEndDate] = useState("2024-01-09")
+  const [startDate, setStartDate] = useState(() => {
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    return yesterday.toISOString().split('T')[0]
+  })
+  const [endDate, setEndDate] = useState(() => {
+    const today = new Date()
+    return today.toISOString().split('T')[0]
+  })
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(20)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  
+  // API 데이터 상태
+  const [logs, setLogs] = useState<FrontendLog[]>([])
+  const [devices, setDevices] = useState<Device[]>([])
+  const [logsLoading, setLogsLoading] = useState(true)
+  const [logsError, setLogsError] = useState<string | null>(null)
 
   const router = useRouter()
 
   // useEffect 훅
   useEffect(() => {
-    const checkLoginStatus = () => {
-      const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true'
-      if (!loggedIn) {
+    const checkAuth = () => {
+      const authenticated = isAuthenticated()
+      if (!authenticated) {
         router.push('/login')
+        return
       } else {
         setIsLoggedIn(true)
       }
       setIsLoading(false)
     }
-    
-    checkLoginStatus()
+    checkAuth()
   }, [router])
 
-  // useMemo 훅
+  // 로그 데이터 로드
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadLogs()
+      loadDevices()
+    }
+  }, [isLoggedIn])
+
+  // 로그 데이터 로드 함수
+  const loadLogs = async () => {
+    try {
+      setLogsLoading(true)
+      setLogsError(null)
+      
+      console.log('📝 로그 데이터 로드 시작')
+      const logsData = await getFormattedLogs()
+      setLogs(logsData)
+      console.log('✅ 로그 데이터 로드 완료:', logsData.length, '개')
+      
+    } catch (error) {
+      console.error('❌ 로그 데이터 로드 실패:', error)
+      setLogsError('로그 데이터를 불러올 수 없습니다')
+    } finally {
+      setLogsLoading(false)
+    }
+  }
+
+  // 기기 데이터 로드 함수
+  const loadDevices = async () => {
+    try {
+      console.log('📱 기기 데이터 로드 시작')
+      const devicesData = await get<Device[]>('/devices/')
+      setDevices(devicesData)
+      console.log('✅ 기기 데이터 로드 완료:', devicesData.length, '개')
+    } catch (error) {
+      console.error('❌ 기기 데이터 로드 실패:', error)
+    }
+  }
+
+  // useMemo 훅 - API 데이터 사용
   const filteredLogs = useMemo(() => {
-    let filtered = allLogs
+    // 검색 및 필터링 적용
+    let filtered = searchLogs(logs, searchTerm)
+    filtered = filterLogs(filtered, selectedDevice, startDate, endDate)
+    
+    return filtered
+  }, [logs, selectedDevice, startDate, endDate, searchTerm])
 
-    // 기기 필터
-    if (selectedDevice !== "all") {
-      filtered = filtered.filter((log) => log.deviceId === selectedDevice)
+  // 로그아웃 함수
+  const handleLogout = async () => {
+    try {
+      await apiLogout(localStorage.getItem('access_token') || '')
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      router.push('/login')
     }
-
-    // 날짜 범위 필터
-    filtered = filtered.filter((log) => {
-      return log.date >= startDate && log.date <= endDate
+  }
+  
+  // 기기 옵션 생성 (API 데이터 사용)
+  const deviceOptions = useMemo(() => {
+    const options = [{ id: "all", name: "전체 기기" }]
+    
+    devices.forEach(device => {
+      options.push({
+        id: device.device_id.toString(),
+        name: device.device_name
+      })
     })
-
-    // 검색어 필터
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (log) =>
-          log.trigger.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          log.deviceName.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
-    }
-
-    // 시간순 정렬 (최신순)
-    return filtered.sort((a, b) => {
-      const dateTimeA = new Date(`${a.date} ${a.time}`)
-      const dateTimeB = new Date(`${b.date} ${b.time}`)
-      return dateTimeB.getTime() - dateTimeA.getTime()
-    })
-  }, [selectedDevice, startDate, endDate, searchTerm])
+    
+    return options
+  }, [devices])
+  
+  // 로그 새로고침 함수
+  const handleRefresh = () => {
+    loadLogs()
+    loadDevices()
+  }
 
   // 로딩 화면
   if (isLoading || !isLoggedIn) {
@@ -201,11 +200,6 @@ export default function LogsPage() {
     document.body.removeChild(link)
   }
 
-  const handleRefresh = () => {
-    console.log("로그 새로고침")
-    alert("로그가 새로고침되었습니다.")
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
@@ -243,13 +237,7 @@ export default function LogsPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  if (confirm("로그아웃 하시겠습니까?")) {
-                    sessionStorage.removeItem('isLoggedIn')
-                    alert("로그아웃 되었습니다.")
-                    router.push("/login")
-                  }
-                }}
+                onClick={handleLogout}
                 className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
               >
                 <LogOut className="w-4 h-4" />
@@ -286,7 +274,7 @@ export default function LogsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {devices.map((device) => (
+                      {deviceOptions.map((device) => (
                         <SelectItem key={device.id} value={device.id}>
                           {device.name}
                         </SelectItem>
@@ -347,7 +335,11 @@ export default function LogsPage() {
           <div className="mb-4 flex justify-between items-center">
             <div className="text-sm text-gray-600">
               총 <span className="font-semibold text-gray-900">{filteredLogs.length}</span>개의 로그
-              {selectedDevice !== "all" && <span> - {devices.find((d) => d.id === selectedDevice)?.name}</span>}
+              {selectedDevice !== "all" && (
+                <span> - {deviceOptions.find((d) => d.id === selectedDevice)?.name}</span>
+              )}
+              {logsLoading && <span className="ml-2 text-blue-600">로딩 중...</span>}
+              {logsError && <span className="ml-2 text-red-600">오류: {logsError}</span>}
             </div>
             <div className="text-sm text-gray-600">
               {startDate} ~ {endDate}
@@ -368,7 +360,24 @@ export default function LogsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedLogs.length > 0 ? (
+                    {logsLoading ? (
+                      <tr>
+                        <td colSpan={4} className="py-8 px-4 text-center text-gray-500">
+                          <div className="flex items-center justify-center gap-2">
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            로그 데이터를 불러오는 중...
+                          </div>
+                        </td>
+                      </tr>
+                    ) : logsError ? (
+                      <tr>
+                        <td colSpan={4} className="py-8 px-4 text-center text-red-500">
+                          <div className="flex items-center justify-center gap-2">
+                            로그 데이터를 불러올 수 없습니다: {logsError}
+                          </div>
+                        </td>
+                      </tr>
+                    ) : paginatedLogs.length > 0 ? (
                       paginatedLogs.map((log) => (
                         <tr key={log.id} className="border-b hover:bg-gray-50">
                           <td className="py-3 px-4 w-44 align-top">
