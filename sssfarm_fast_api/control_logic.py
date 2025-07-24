@@ -4,15 +4,15 @@
 주기적으로 실행되며 , 센서 데이터와 프리셋를 비교하여 장치의 목표 상태를 결졍하고 DB 에 업데이트함
 """
 from sqlalchemy.orm import Session
-from datetime import datetime , timedelta
+from datetime import datetime
 from . import crud , models , schemas
 
 # 급수통 수위 센서 임계값 (수정 가능함 , 프리셋 설정이 아닌 하드 세팅)
 WATER_LEVEL_THRESHOLD = 10
 
 # 펌프 작동 시간 및 쿨다운 설정
-PUMP_RUN_DURATION = timedelta(seconds = 10) # 폄프 작동 시간
-PUMP_COOLDOWN     = timedelta(seconds = 30) # 펌프 대기 시간
+PUMP_RUN_DURATION = 15 # 폄프 작동 시간
+PUMP_COOLDOWN     = 3600 # 펌프 대기 시간
 
 # 특정 기기에 대한 자동 제어 로직을 실행
 def run_control_logic_for_device(db : Session , device_id : int) :
