@@ -179,20 +179,27 @@ def run_control_logic_for_device(db : Session , device_id : int) :
     
     
     # LED 제어 로직
-    auto_led_state     = "OFF"
-    darkness_threshold = active_preset.darkness_threshold
-    light_start_hour   = active_preset.light_start_hour
-    light_end_hour     = active_preset.light_end_hour
+    auto_led_state       = "OFF"
+    preset_coditions_met = False
+    darkness_threshold   = active_preset.darkness_threshold
+    light_start_hour     = active_preset.light_start_hour
+    light_end_hour       = active_preset.light_end_hour
     
     if light_start_hour is not None and light_end_hour is not None :
         is_time_to_light = light_start_hour <= datetime.now().hour < light_end_hour
         is_dark_enough   = latest_data.light_level < darkness_threshold
         
         if is_time_to_light and is_dark_enough :
-            auto_led_state = "ON"
+            preset_coditions_met = True
         # elif is_time_to_light == False or is_dark_enough == False :
         #     auto_led_state = "OFF"
         #     print(f"[제어] | {device.device_name} 생장등 정지")
+    
+    current_minute = datetime.now().minute
+    is_photo_time  = (22 <= current_minute <= 32) or (current_minute >= 52) or (current_minute <= 2)
+    
+    if preset_coditions_met or is_photo_time :
+        auto_led_state = "ON"
         
     final_led_state = auto_led_state
     is_manual_led = device.override_led_state is not None
