@@ -56,10 +56,11 @@ class Device(Base) :
     alert_led_state     = Column(String(10) , default = "OFF")
     
     # 사용자 수동 제어 상태 관리 필드들
-    override_led_state    = Column(String(10) , nullable = True , default = None)
-    override_pump_state_1 = Column(String(10) , nullable = True , default = None)
-    override_pump_state_2 = Column(String(10) , nullable = True , default = None)
-    override_fan_state    = Column(String(10) , nullable = True , default = None)
+    override_led_state        = Column(String(10) , nullable = True , default = None)
+    override_pump_state_1     = Column(String(10) , nullable = True , default = None)
+    override_pump_state_2     = Column(String(10) , nullable = True , default = None)
+    override_fan_state        = Column(String(10) , nullable = True , default = None)
+    override_drain_pump_state = Column(String(10) , nullable = True , defalut = None)
     
     # 펌프의 마지막 작동 시간 추가
     # 펌프가 10초만 작동하고 무조건 20초의 휴식타임을 가지도록 함

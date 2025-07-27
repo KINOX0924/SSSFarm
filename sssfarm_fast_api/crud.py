@@ -148,7 +148,7 @@ def set_manual_override(db : Session , device_id : int , control_data : schemas.
     command   = control_data.command.upper()
     
     # 컴포넌트 이름에 따라 override 필드 업데이트
-    if component == "pump_1" :
+    if component   == "pump_1" :
         device.override_pump_state_1 = command
     elif component == "pump_2" :
         device.override_pump_state_2 = command
@@ -156,6 +156,8 @@ def set_manual_override(db : Session , device_id : int , control_data : schemas.
         device.override_fan_state = command
     elif component == "led" :
         device.override_led_state = command
+    elif component == "drain_pump" :
+        device.override_drain_pump_state = command
     else :
         return "Invalid component"
     

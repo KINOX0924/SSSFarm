@@ -210,11 +210,12 @@ class Device(DeviceBase) :  # 가장 복잡하고 많은 정보를 보여주는 
 
 # ESP32 아두이노가 자신의 제어 상태를 받아갈 때 사용할 스키마 설정
 class DeviceControlStatus(BaseModel) :
-    target_led_state    : str
-    target_pump_state_1 : str
-    target_pump_state_2 : str
-    target_fan_state    : str
-    alert_led_state     : str
+    target_led_state        : str
+    target_pump_state_1     : str
+    target_pump_state_2     : str
+    target_fan_state        : str
+    alert_led_state         : str
+    target_drain_pump_state : str
 
 # class Config : from_attributes = True
 # SQLAlchemt 로 조회한 DB 모델 객체를 Pydantic 스키마로 변환할 때 , 객체의 속성으로 값에 접근하여 데이터를 읽어오도록 허용하는 옵션

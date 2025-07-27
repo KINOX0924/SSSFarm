@@ -284,11 +284,12 @@ def get_device_control_status(device_id : int , db : Session = Depends(get_datab
         raise HTTPException(status_code = 404 , detail = "장치를 찾을 수 없습니다.")
     
     return schemas.DeviceControlStatus (
-        target_led_state    = device.target_led_state ,
-        target_pump_state_1 = device.target_pump_state_1 , 
-        target_pump_state_2 = device.target_pump_state_2 ,
-        target_fan_state    = device.target_fan_state ,
-        alert_led_state     = device.alert_led_state
+        target_led_state        = device.target_led_state ,
+        target_pump_state_1     = device.target_pump_state_1 , 
+        target_pump_state_2     = device.target_pump_state_2 ,
+        target_fan_state        = device.target_fan_state ,
+        alert_led_state         = device.alert_led_state , 
+        target_drain_pump_state = device.override_drain_pump_state or "OFF"
     )
     
     
