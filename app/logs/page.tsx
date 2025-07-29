@@ -110,7 +110,22 @@ export default function LogsPage() {
   const filteredLogs = useMemo(() => {
     // 검색 및 필터링 적용
     let filtered = searchLogs(logs, searchTerm)
+    
+    // 디버깅: 필터링 전 로그 수
+    console.log(`🔍 필터링 전 로그: ${filtered.length}개`)
+    console.log(`📅 필터 조건: 기기=${selectedDevice}, 시작=${startDate}, 종료=${endDate}`)
+    
     filtered = filterLogs(filtered, selectedDevice, startDate, endDate)
+    
+    // 디버깅: 필터링 후 로그 수
+    console.log(`✅ 필터링 후 로그: ${filtered.length}개`)
+    
+    // 날짜별 로그 개수 확인
+    const dateGroups = filtered.reduce((acc, log) => {
+      acc[log.date] = (acc[log.date] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+    console.log(`📆 날짜별 로그:`, dateGroups)
     
     return filtered
   }, [logs, selectedDevice, startDate, endDate, searchTerm])
@@ -340,6 +355,10 @@ export default function LogsPage() {
               )}
               {logsLoading && <span className="ml-2 text-blue-600">로딩 중...</span>}
               {logsError && <span className="ml-2 text-red-600">오류: {logsError}</span>}
+              {/* 디버그 정보 */}
+              <span className="ml-4 text-xs text-gray-400">
+                (전체: {logs.length}개, 필터링: {startDate} ~ {endDate})
+              </span>
             </div>
             <div className="text-sm text-gray-600">
               {startDate} ~ {endDate}

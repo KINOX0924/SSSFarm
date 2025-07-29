@@ -141,12 +141,7 @@ export function useDevices() {
       setError(null)
       setLoading(true)
       const deviceList = await get<Device[]>('/devices/')
-      
-      // 로컬 기기도 추가
-      const localDevices = getLocalDevices()
-      const allDevices = [...deviceList, ...localDevices]
-      
-      setDevices(allDevices)
+      setDevices(deviceList)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '기기 목록을 불러오는데 실패했습니다'
       setError(errorMessage)
@@ -171,47 +166,20 @@ export function useDevices() {
         throw new Error('인증 토큰이 없습니다. 다시 로그인해주세요.')
       }
       
-      // API로 기기 추가 시도
-      try {
-        const deviceData: DeviceCreate = {
-          device_name: device.name,
-          location: device.location,
-          device_serial: device.ip,
-          position_id: 1, // 기본 위치 ID (실제로는 위치 선택 UI 필요)
-          user_preset_id: null,
-          plant_preset_id: null
-        }
-        
-        const newDevice = await post<Device>('/devices/', deviceData)
-        console.log('Device created via API:', newDevice)
-        
-        await fetchDevices() // 목록 새로고침
-        return newDevice
-        
-      } catch (apiError) {
-        console.error('API device creation failed, saving locally:', apiError)
-        
-        // API 실패 시 로컬에 저장
-        const localDevice: Device = {
-          device_id: Date.now(),
-          device_name: device.name,
-          location: device.location,
-          device_type: 'local',
-          device_serial: device.ip,
-          last_active: null,
-          position: null,
-          user_preset: null,
-          plant_preset: null,
-          sensor_data: [],
-          action_logs: [],
-          plant_images: []
-        }
-        
-        saveLocalDevice(localDevice)
-        await fetchDevices() // 목록 새로고침
-        
-        throw new Error('API 기기 등록에 실패했습니다. 로컬에 저장되었습니다.')
+      const deviceData: DeviceCreate = {
+        device_name: device.name,
+        location: device.location,
+        device_serial: device.ip,
+        position_id: 1, // 기본 위치 ID
+        user_preset_id: null,
+        plant_preset_id: null
       }
+      
+      const newDevice = await post<Device>('/devices/', deviceData)
+      console.log('Device created via API:', newDevice)
+      
+      await fetchDevices() // 목록 새로고침
+      return newDevice
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '기기 추가에 실패했습니다'
@@ -220,30 +188,19 @@ export function useDevices() {
     }
   }, [fetchDevices])
 
-  // 기기 삭제 (로컬만)
+  // 기기 삭제 (API 기기는 삭제 불가)
   const deleteDevice = useCallback(async (deviceId: number) => {
     try {
       setError(null)
-      
-      // API 기기인지 확인
-      const device = devices.find(d => d.device_id === deviceId)
-      if (device && device.device_type !== 'local') {
-        throw new Error('API 기기는 삭제할 수 없습니다')
-      }
-      
-      // 로컬 기기 삭제
-      const localDevices = getLocalDevices()
-      const filtered = localDevices.filter(d => d.device_id !== deviceId)
-      localStorage.setItem('local_devices', JSON.stringify(filtered))
-      
-      await fetchDevices() // 목록 새로고침
+      // API 기기는 삭제 불가
+      throw new Error('API 기기는 삭제할 수 없습니다')
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '기기 삭제에 실패했습니다'
       setError(errorMessage)
       throw err
     }
-  }, [devices, fetchDevices])
+  }, [])
 
   return {
     devices,
@@ -252,39 +209,5 @@ export function useDevices() {
     fetchDevices,
     addDevice,
     deleteDevice
-  }
-}
-
-// 로컬 기기 관리 헬퍼 함수들
-function getLocalDevices(): Device[] {
-  if (typeof window === 'undefined') return []
-  
-  try {
-    const stored = localStorage.getItem('local_devices')
-    return stored ? JSON.parse(stored) : []
-  } catch (error) {
-    console.error('Failed to load local devices:', error)
-    return []
-  }
-}
-
-function saveLocalDevice(device: Device): void {
-  if (typeof window === 'undefined') return
-  
-  try {
-    const devices = getLocalDevices()
-    const existingIndex = devices.findIndex(d => d.device_id === device.device_id)
-    
-    if (existingIndex >= 0) {
-      devices[existingIndex] = device
-    } else {
-      devices.push(device)
-    }
-    
-    localStorage.setItem('local_devices', JSON.stringify(devices))
-    console.log('Device saved locally:', device.device_name)
-    
-  } catch (error) {
-    console.error('Failed to save local device:', error)
   }
 }

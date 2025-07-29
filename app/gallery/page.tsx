@@ -29,14 +29,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useRouter } from "next/navigation"
 import { useGalleryImages, useGalleryFilters, useImageSlideshow } from "@/hooks/useGallery"
 
-// 시간 간격 옵션
-const timeIntervals = [
-  { id: "all", name: "전체 사진", minutes: 0 },
-  { id: "15min", name: "15분 간격", minutes: 15 },
-  { id: "1hour", name: "1시간 간격", minutes: 60 },
-  { id: "6hour", name: "6시간 간격", minutes: 360 },
-  { id: "1day", name: "1일 간격", minutes: 1440 },
-]
+
 
 export default function GalleryPage() {
   const router = useRouter()
@@ -153,9 +146,6 @@ export default function GalleryPage() {
             <div className="flex items-center gap-3" style={{marginTop: '12px'}}>
               <div className="text-2xl">🌱</div>
               <h1 className="text-xl font-bold text-gray-900">SSSFarm</h1>
-              {/* API 연결 상태 표시 */}
-              <div className={`w-2 h-2 rounded-full ${images.length > 0 ? 'bg-green-500' : 'bg-red-500'}`} 
-                   title={images.length > 0 ? 'API 연결됨' : 'API 연결 끊어짐'} />
             </div>
 
             <div className="flex items-center gap-4">
@@ -233,7 +223,7 @@ export default function GalleryPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                 {/* 기기 선택 */}
                 <div>
                   <label className="block text-sm font-medium mb-2">기기</label>
@@ -256,26 +246,6 @@ export default function GalleryPage() {
                   </Select>
                 </div>
 
-                {/* 시간 간격 */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">시간 간격</label>
-                  <Select 
-                    value={filters.timeInterval.toString()} 
-                    onValueChange={(value) => updateFilter('timeInterval', parseInt(value))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {timeIntervals.map((interval) => (
-                        <SelectItem key={interval.id} value={interval.minutes.toString()}>
-                          {interval.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 {/* 시작 날짜 */}
                 <div>
                   <label className="block text-sm font-medium mb-2">시작 날짜</label>
@@ -286,6 +256,16 @@ export default function GalleryPage() {
                   />
                 </div>
 
+                {/* 시작 시간 */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">시작 시간</label>
+                  <Input
+                    type="time"
+                    value={filters.startTime || ''}
+                    onChange={(e) => updateFilter('startTime', e.target.value)}
+                  />
+                </div>
+
                 {/* 종료 날짜 */}
                 <div>
                   <label className="block text-sm font-medium mb-2">종료 날짜</label>
@@ -293,6 +273,16 @@ export default function GalleryPage() {
                     type="date"
                     value={filters.endDate}
                     onChange={(e) => updateFilter('endDate', e.target.value)}
+                  />
+                </div>
+
+                {/* 종료 시간 */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">종료 시간</label>
+                  <Input
+                    type="time"
+                    value={filters.endTime || ''}
+                    onChange={(e) => updateFilter('endTime', e.target.value)}
                   />
                 </div>
 

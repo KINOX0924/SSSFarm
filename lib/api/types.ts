@@ -97,6 +97,7 @@ export interface DeviceControlStatus {
   target_pump_state_1: string
   target_pump_state_2: string
   target_fan_state: string
+  target_drain_pump_state: string  // 배수펌프 상태 추가
   alert_led_state: string
 }
 

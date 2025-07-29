@@ -169,7 +169,7 @@ export function searchLogs(logs: FrontendLog[], searchTerm: string): FrontendLog
 }
 
 /**
- * 로그 필터링
+ * 로그 필터링 - 종료날짜 포함 개선 (시간 처리 수정)
  */
 export function filterLogs(
   logs: FrontendLog[], 
@@ -183,13 +183,24 @@ export function filterLogs(
       return false
     }
     
-    // 날짜 필터
+    // 날짜 필터 - 시작날짜 이후 (포함)
     if (startDate && log.date < startDate) {
       return false
     }
     
-    if (endDate && log.date > endDate) {
-      return false
+    // 날짜 필터 - 종료날짜 당일까지 포함 (하루 전체)
+    // 문제: log.date가 "2024-01-25"이고 endDate가 "2024-01-25"일 때
+    // 25일 00:00~23:59의 모든 로그를 포함해야 함
+    if (endDate) {
+      // 종료날짜의 다음날을 계산
+      const endDateTime = new Date(endDate)
+      endDateTime.setDate(endDateTime.getDate() + 1) // 다음날 00:00
+      const nextDay = endDateTime.toISOString().split('T')[0]
+      
+      // 로그 날짜가 다음날 이상이면 제외
+      if (log.date >= nextDay) {
+        return false
+      }
     }
     
     return true

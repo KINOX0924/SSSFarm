@@ -157,7 +157,7 @@ export function convertAPIToFrontend(apiPreset: UserPreset): FrontendPreset {
 }
 
 /**
- * 사용자의 모든 프리셋 조회
+ * 사용자의 모든 프리셋 조회 (API만)
  */
 export async function getUserPresets(userId: number): Promise<FrontendPreset[]> {
   try {
@@ -166,29 +166,11 @@ export async function getUserPresets(userId: number): Promise<FrontendPreset[]> 
     console.log('API presets:', apiPresets)
     
     const frontendPresets = apiPresets.map(convertAPIToFrontend)
-    
-    // 로컬 프리셋도 추가
-    const localPresets = getLocalPresets()
-    const localFrontendPresets = localPresets.map(preset => ({
-      ...preset,
-      id: `local-${preset.id}`,
-      source: 'local' as const,
-      name: `${preset.name} (로컬)`
-    }))
-    
-    return [...frontendPresets, ...localFrontendPresets]
+    return frontendPresets
     
   } catch (error) {
     console.error('Failed to fetch user presets:', error)
-    
-    // API 실패 시 로컬 프리셋만 반환
-    const localPresets = getLocalPresets()
-    return localPresets.map(preset => ({
-      ...preset,
-      id: `local-${preset.id}`,
-      source: 'local' as const,
-      name: `${preset.name} (로컬)`
-    }))
+    return []
   }
 }
 
@@ -215,10 +197,7 @@ export async function createPreset(frontendPreset: FrontendPreset): Promise<User
     
   } catch (error) {
     console.error('Failed to create preset via API:', error)
-    
-    // API 실패 시 로컬 저장
-    saveLocalPreset(frontendPreset)
-    throw new Error('API 프리셋 생성에 실패했습니다. 로컬에 저장되었습니다.')
+    throw new Error('API 프리셋 생성에 실패했습니다.')
   }
 }
 

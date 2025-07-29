@@ -215,12 +215,13 @@ export function useSystemReset() {
           // 프리셋이 없는 경우 모든 구성 요소 OFF
           else {
             await Promise.all([
-              dashboardApi.controlDevice(device.device_id, 'LED', 'OFF'),
-              dashboardApi.controlDevice(device.device_id, 'PUMP1', 'OFF'),
-              dashboardApi.controlDevice(device.device_id, 'PUMP2', 'OFF'),
-              dashboardApi.controlDevice(device.device_id, 'FAN', 'OFF')
+              dashboardApi.controlDevice(device.device_id, 'led', 'OFF'),
+              dashboardApi.controlDevice(device.device_id, 'pump_1', 'OFF'),
+              dashboardApi.controlDevice(device.device_id, 'pump_2', 'OFF'),
+              dashboardApi.controlDevice(device.device_id, 'fan', 'OFF'),
+              dashboardApi.controlDevice(device.device_id, 'drain_pump', 'OFF') // 배수펌프 추가
             ])
-            console.log(`🔄 Device ${device.device_id}: Reset to OFF state`)
+            console.log(`🔄 Device ${device.device_id}: Reset to OFF state (including drain pump)`)
           }
         } catch (deviceError) {
           console.error(`❌ Reset failed for device ${device.device_id}:`, deviceError)

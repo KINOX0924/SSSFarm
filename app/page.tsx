@@ -47,6 +47,26 @@ export default function DashboardPage() {
   // 선택된 기기의 제어 상태
   const { controlStatus, loading: controlLoading, error: controlError, refetch: refetchControlStatus, controlDevice } = useDeviceControlStatus(selectedDeviceId)
   
+  // 컴포넌트별 10초 타이머 상태
+  const [componentTimers, setComponentTimers] = useState<{[key: string]: number}>({})
+  
+  // 10초 타이머 시작 함수
+  const startComponentTimer = (componentName: string) => {
+    setComponentTimers(prev => ({ ...prev, [componentName]: 10 }))
+    
+    const interval = setInterval(() => {
+      setComponentTimers(prev => {
+        const newTime = (prev[componentName] || 0) - 1
+        if (newTime <= 0) {
+          clearInterval(interval)
+          const { [componentName]: removed, ...rest } = prev
+          return rest
+        }
+        return { ...prev, [componentName]: newTime }
+      })
+    }, 1000)
+  }
+  
   // 선택된 기기의 이벤트 로그
   const { logs, loading: logsLoading, error: logsError, refetch: refetchLogs } = useDeviceEventLogs(selectedDeviceId)
   
@@ -116,11 +136,45 @@ export default function DashboardPage() {
       return
     }
     
+    // 이미 타이머가 작동 중이면 방지
+    if (componentTimers[component]) {
+      alert(`${component} 명령 전송 중입니다. ${componentTimers[component]}초 후 다시 시도해주세요.`)
+      return
+    }
+    
+    console.log(`🎛️ 대시보드에서 기기 제어: Device ${selectedDeviceId}, ${component} ${command}`)
+    
+    // 10초 타이머 시작
+    startComponentTimer(component)
+    
     try {
       await controlDevice(component, command)
-      alert(`${component} ${command} 완료`)
+      console.log(`✅ 기기 제어 성공: ${component} ${command}`)
+      // alert 제거 - 타이머로 충분한 시각적 피드백 제공
     } catch (error) {
-      alert("기기 제어에 실패했습니다. 다시 시도해주세요.")
+      console.error('❌ 기기 제어 에러:', error)
+      
+      // 에러 시 타이머 제거
+      setComponentTimers(prev => {
+        const { [component]: removed, ...rest } = prev
+        return rest
+      })
+      
+      let errorMessage = "기기 제어에 실패했습니다."
+      
+      if (error instanceof Error) {
+        if (error.message.includes('404')) {
+          errorMessage = `기기(${selectedDeviceId})를 찾을 수 없습니다. 기기가 온라인 상태인지 확인해주세요.`
+        } else if (error.message.includes('400')) {
+          errorMessage = `지원되지 않는 제어 명령입니다: ${component} ${command}`
+        } else if (error.message.includes('500')) {
+          errorMessage = "서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+        } else {
+          errorMessage = `에러: ${error.message}`
+        }
+      }
+      
+      alert(errorMessage + " 다시 시도해주세요.")
     }
   }
 
@@ -204,9 +258,6 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3" style={{marginTop: '12px'}}>
               <div className="text-2xl">🌱</div>
               <h1 className="text-xl font-bold text-gray-900">SSSFarm</h1>
-              {/* API 연결 상태 표시 */}
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} 
-                   title={isConnected ? 'API 연결됨' : 'API 연결 끊어짐'} />
             </div>
 
             <div className="flex items-center gap-4">
@@ -228,18 +279,6 @@ export default function DashboardPage() {
                     {label}
                   </Button>
                 ))}
-                
-                {/* API 테스트 링크 */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => router.push('/api-test')}
-                  className="gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                  title="API 연결 테스트"
-                >
-                  <AlertCircle className="w-4 h-4" />
-                  API 테스트
-                </Button>
               </div>
 
               <Button
@@ -337,116 +376,467 @@ export default function DashboardPage() {
               {/* Sensor Cards */}
               <div className="lg:col-span-3 space-y-6">
                 {/* Sensor Data Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                  {/* 온도 센서 */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <div className="flex justify-between items-center h-6">
-                        <CardTitle className="text-sm font-medium">온도</CardTitle>
-                        <Sun className="w-5 h-5 text-orange-500" />
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {sensorLoading ? "..." : (latestSensorData?.temperature?.toFixed(1) || 0)}
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        °C
-                      </p>
-                    </CardContent>
-                  </Card>
+                <div className="space-y-6">
+                  {/* 첫 번째 줄: 기본 센서 데이터 4개 */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* 온도 센서 */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-center h-6">
+                          <CardTitle className="text-sm font-medium">온도</CardTitle>
+                          <Sun className="w-5 h-5 text-orange-500" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {sensorLoading ? "..." : (latestSensorData?.temperature?.toFixed(1) || 0)}
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          °C
+                        </p>
+                      </CardContent>
+                    </Card>
 
-                  {/* 습도 센서 */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <div className="flex justify-between items-center h-6">
-                        <CardTitle className="text-sm font-medium">습도</CardTitle>
-                        <Droplets className="w-5 h-5 text-blue-500" />
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {sensorLoading ? "..." : (latestSensorData?.humidity?.toFixed(1) || 0)}
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        %
-                      </p>
-                    </CardContent>
-                  </Card>
+                    {/* 습도 센서 */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-center h-6">
+                          <CardTitle className="text-sm font-medium">습도</CardTitle>
+                          <Droplets className="w-5 h-5 text-blue-500" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {sensorLoading ? "..." : (latestSensorData?.humidity?.toFixed(1) || 0)}
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          %
+                        </p>
+                      </CardContent>
+                    </Card>
 
-                  {/* 조도 센서 */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <div className="flex justify-between items-center h-6">
-                        <CardTitle className="text-sm font-medium">조도</CardTitle>
-                        <Sun className="w-5 h-5 text-yellow-500" />
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {sensorLoading ? "..." : (latestSensorData?.light_level || 0)}
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        lux
-                      </p>
-                    </CardContent>
-                  </Card>
+                    {/* 조도 센서 */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-center h-6">
+                          <CardTitle className="text-sm font-medium">조도</CardTitle>
+                          <Sun className="w-5 h-5 text-yellow-500" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {sensorLoading ? "..." : (latestSensorData?.light_level || 0)}
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          lux
+                        </p>
+                      </CardContent>
+                    </Card>
 
-                  {/* 물탱크 수위 */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <div className="flex justify-between items-center h-6">
-                        <CardTitle className="text-sm font-medium">물탱크</CardTitle>
-                        <Gauge className="w-5 h-5 text-cyan-500" />
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {sensorLoading ? "..." : (latestSensorData?.water_level || 0)}
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        %
-                      </p>
-                    </CardContent>
-                  </Card>
+                    {/* 물탱크 수위 */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-center h-6">
+                          <CardTitle className="text-sm font-medium">물탱크</CardTitle>
+                          <Gauge className="w-5 h-5 text-cyan-500" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {sensorLoading ? "..." : (latestSensorData?.water_level || 0)}
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          %
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
 
-                  {/* 토양 수분 1 */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <div className="flex justify-between items-center h-6">
-                        <CardTitle className="text-sm font-medium">토양습도 1</CardTitle>
-                        <Sprout className="w-5 h-5 text-green-500" />
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {sensorLoading ? "..." : (latestSensorData?.soil_moisture_1 || 0)}
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        %
-                      </p>
-                    </CardContent>
-                  </Card>
+                  {/* 두 번째 줄: 토양습도 센서 2개 + 상태 카드 */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* 토양 수분 1 */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-center h-6">
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-sm font-medium">토양습도 1</CardTitle>
+                            <div className="relative group">
+                              <AlertCircle className="w-4 h-4 text-gray-400 cursor-help" />
+                              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-56">
+                                <div className="text-center font-medium mb-2">토양습도 상세 가이드</div>
+                                <div className="space-y-1 text-xs">
+                                  <div className="flex justify-between border-b border-gray-600 pb-1">
+                                    <span>수분량</span>
+                                    <span>센서값</span>
+                                    <span>상태</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>0%</span>
+                                    <span>4095</span>
+                                    <span>😢 완전건조</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>10%</span>
+                                    <span>3686</span>
+                                    <span>😢 매우건조</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>20%</span>
+                                    <span>3276</span>
+                                    <span>😢 건조</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>30%</span>
+                                    <span>2867</span>
+                                    <span>🙂 최적시작</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>40%</span>
+                                    <span>2457</span>
+                                    <span>🙂 최적끝</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>50%</span>
+                                    <span>2048</span>
+                                    <span>🙂 양호</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>60%</span>
+                                    <span>1638</span>
+                                    <span>🙂 양호</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>80%</span>
+                                    <span>819</span>
+                                    <span>😰 습함</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>100%</span>
+                                    <span>0</span>
+                                    <span>😰 물속</span>
+                                  </div>
+                                </div>
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <Sprout className="w-5 h-5 text-green-500" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {sensorLoading ? "..." : (latestSensorData?.soil_moisture_1 || 0)}
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          ADC
+                        </p>
+                      </CardContent>
+                    </Card>
 
-                  {/* 토양 수분 2 */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <div className="flex justify-between items-center h-6">
-                        <CardTitle className="text-sm font-medium">토양습도 2</CardTitle>
-                        <Sprout className="w-5 h-5 text-green-600" />
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {sensorLoading ? "..." : (latestSensorData?.soil_moisture_2 || 0)}
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        %
-                      </p>
-                    </CardContent>
-                  </Card>
+                    {/* 토양 수분 2 */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-center h-6">
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-sm font-medium">토양습도 2</CardTitle>
+                            <div className="relative group">
+                              <AlertCircle className="w-4 h-4 text-gray-400 cursor-help" />
+                              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-56">
+                                <div className="text-center font-medium mb-2">토양습도 상세 가이드</div>
+                                <div className="space-y-1 text-xs">
+                                  <div className="flex justify-between border-b border-gray-600 pb-1">
+                                    <span>수분량</span>
+                                    <span>센서값</span>
+                                    <span>상태</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>0%</span>
+                                    <span>4095</span>
+                                    <span>😢 완전건조</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>10%</span>
+                                    <span>3686</span>
+                                    <span>😢 매우건조</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>20%</span>
+                                    <span>3276</span>
+                                    <span>😢 건조</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>30%</span>
+                                    <span>2867</span>
+                                    <span>🙂 최적시작</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>40%</span>
+                                    <span>2457</span>
+                                    <span>🙂 최적끝</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>50%</span>
+                                    <span>2048</span>
+                                    <span>🙂 양호</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>60%</span>
+                                    <span>1638</span>
+                                    <span>🙂 양호</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>80%</span>
+                                    <span>819</span>
+                                    <span>😰 습함</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>100%</span>
+                                    <span>0</span>
+                                    <span>😰 물속</span>
+                                  </div>
+                                </div>
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <Sprout className="w-5 h-5 text-green-600" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {sensorLoading ? "..." : (latestSensorData?.soil_moisture_2 || 0)}
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          ADC
+                        </p>
+                      </CardContent>
+                    </Card>
 
-
+                    {/* 전체 상태 요약 카드 */}
+                    <Card className={(() => {
+                      if (sensorLoading) return "bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200"
+                      
+                      const temp = latestSensorData?.temperature || 0
+                      const humidity = latestSensorData?.humidity || 0
+                      const soil1 = latestSensorData?.soil_moisture_1 || 0
+                      const soil2 = latestSensorData?.soil_moisture_2 || 0
+                      
+                      const tempGood = temp >= 20 && temp <= 25
+                      const humidityGood = humidity >= 40 && humidity <= 60
+                      const soil1Good = soil1 >= 2718 && soil1 <= 3177
+                      const soil2Good = soil2 >= 2718 && soil2 <= 3177
+                      
+                      const goodCount = [tempGood, humidityGood, soil1Good, soil2Good].filter(Boolean).length
+                      
+                      if (goodCount >= 3) return "bg-gradient-to-br from-green-50 to-green-100 border-green-300" // 최적 - 초록
+                      if (goodCount >= 2) return "bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-300" // 주의 - 노랑
+                      return "bg-gradient-to-br from-red-50 to-red-100 border-red-300" // 위험 - 빨간
+                    })()}>
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-center h-6">
+                          <div className="flex items-center gap-2">
+                            <CardTitle className={`text-sm font-medium ${
+                              (() => {
+                                if (sensorLoading) return "text-gray-700"
+                                
+                                const temp = latestSensorData?.temperature || 0
+                                const humidity = latestSensorData?.humidity || 0
+                                const soil1 = latestSensorData?.soil_moisture_1 || 0
+                                const soil2 = latestSensorData?.soil_moisture_2 || 0
+                                
+                                const tempGood = temp >= 20 && temp <= 25
+                                const humidityGood = humidity >= 40 && humidity <= 60
+                                const soil1Good = soil1 >= 2718 && soil1 <= 3177
+                                const soil2Good = soil2 >= 2718 && soil2 <= 3177
+                                
+                                const goodCount = [tempGood, humidityGood, soil1Good, soil2Good].filter(Boolean).length
+                                
+                                if (goodCount >= 3) return "text-green-800" // 최적 - 초록
+                                if (goodCount >= 2) return "text-yellow-800" // 주의 - 노랑
+                                return "text-red-800" // 위험 - 빨간
+                              })()
+                            }`}>전체 상태</CardTitle>
+                            <div className="relative group">
+                              <AlertCircle className={`w-4 h-4 cursor-help ${
+                                (() => {
+                                  if (sensorLoading) return "text-gray-600"
+                                  
+                                  const temp = latestSensorData?.temperature || 0
+                                  const humidity = latestSensorData?.humidity || 0
+                                  const soil1 = latestSensorData?.soil_moisture_1 || 0
+                                  const soil2 = latestSensorData?.soil_moisture_2 || 0
+                                  
+                                  const tempGood = temp >= 20 && temp <= 25
+                                  const humidityGood = humidity >= 40 && humidity <= 60
+                                  const soil1Good = soil1 >= 2718 && soil1 <= 3177
+                                  const soil2Good = soil2 >= 2718 && soil2 <= 3177
+                                  
+                                  const goodCount = [tempGood, humidityGood, soil1Good, soil2Good].filter(Boolean).length
+                                  
+                                  if (goodCount >= 3) return "text-green-600" // 최적 - 초록
+                                  if (goodCount >= 2) return "text-yellow-600" // 주의 - 노랑
+                                  return "text-red-600" // 위험 - 빨간
+                                })()
+                              }`} />
+                              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-52">
+                                <div className="text-center font-medium mb-2">상태 판단 기준</div>
+                                <div className="space-y-1 text-xs">
+                                  {(() => {
+                                    if (sensorLoading) return <div>로딩 중...</div>
+                                    
+                                    const temp = latestSensorData?.temperature || 0
+                                    const humidity = latestSensorData?.humidity || 0
+                                    const soil1 = latestSensorData?.soil_moisture_1 || 0
+                                    const soil2 = latestSensorData?.soil_moisture_2 || 0
+                                    
+                                    const tempGood = temp >= 20 && temp <= 25
+                                    const humidityGood = humidity >= 40 && humidity <= 60
+                                    const soil1Good = soil1 >= 2718 && soil1 <= 3177
+                                    const soil2Good = soil2 >= 2718 && soil2 <= 3177
+                                    
+                                    return (
+                                      <>
+                                        <div className="flex items-center justify-between">
+                                          <span>🌡️ 온도 (20-25°C)</span>
+                                          <span>{tempGood ? '✅' : '❌'}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                          <span>💧 습도 (40-60%)</span>
+                                          <span>{humidityGood ? '✅' : '❌'}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                          <span>🌱 토양습도 1 (2718-3177)</span>
+                                          <span>{soil1Good ? '✅' : '❌'}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                          <span>🌱 토양습도 2 (2718-3177)</span>
+                                          <span>{soil2Good ? '✅' : '❌'}</span>
+                                        </div>
+                                        <div className="border-t border-gray-600 pt-1 mt-2 text-center">
+                                          <div>😊 매우 좋음: 3/4 이상</div>
+                                          <div>🙂 보통: 2/4</div>
+                                          <div>😟 주의: 1/4 이하</div>
+                                        </div>
+                                      </>
+                                    )
+                                  })()
+                                  }
+                                </div>
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-2xl">
+                            {(() => {
+                              if (sensorLoading) return "🤔"
+                              
+                              const temp = latestSensorData?.temperature || 0
+                              const humidity = latestSensorData?.humidity || 0
+                              const soil1 = latestSensorData?.soil_moisture_1 || 0
+                              const soil2 = latestSensorData?.soil_moisture_2 || 0
+                              
+                              // 상태 판단 로직
+                              const tempGood = temp >= 20 && temp <= 25
+                              const humidityGood = humidity >= 40 && humidity <= 60
+                              const soil1Good = soil1 >= 2718 && soil1 <= 3177
+                              const soil2Good = soil2 >= 2718 && soil2 <= 3177
+                              
+                              const goodCount = [tempGood, humidityGood, soil1Good, soil2Good].filter(Boolean).length
+                              
+                              if (goodCount >= 3) return "😊" // 매우 좋음
+                              if (goodCount >= 2) return "🙂" // 보통
+                              return "😟" // 주의 필요
+                            })()
+                          }
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className={`text-lg font-bold ${
+                          (() => {
+                            if (sensorLoading) return "text-gray-700"
+                            
+                            const temp = latestSensorData?.temperature || 0
+                            const humidity = latestSensorData?.humidity || 0
+                            const soil1 = latestSensorData?.soil_moisture_1 || 0
+                            const soil2 = latestSensorData?.soil_moisture_2 || 0
+                            
+                            const tempGood = temp >= 20 && temp <= 25
+                            const humidityGood = humidity >= 40 && humidity <= 60
+                            const soil1Good = soil1 >= 2718 && soil1 <= 3177
+                            const soil2Good = soil2 >= 2718 && soil2 <= 3177
+                            
+                            const goodCount = [tempGood, humidityGood, soil1Good, soil2Good].filter(Boolean).length
+                            
+                            if (goodCount >= 3) return "text-green-700" // 최적 - 초록
+                            if (goodCount >= 2) return "text-yellow-700" // 주의 - 노랑
+                            return "text-red-700" // 위험 - 빨간
+                          })()
+                        }`}>
+                          {(() => {
+                            if (sensorLoading) return "분석 중..."
+                            
+                            const temp = latestSensorData?.temperature || 0
+                            const humidity = latestSensorData?.humidity || 0
+                            const soil1 = latestSensorData?.soil_moisture_1 || 0
+                            const soil2 = latestSensorData?.soil_moisture_2 || 0
+                            
+                            const tempGood = temp >= 20 && temp <= 25
+                            const humidityGood = humidity >= 40 && humidity <= 60
+                            const soil1Good = soil1 >= 2718 && soil1 <= 3177
+                            const soil2Good = soil2 >= 2718 && soil2 <= 3177
+                            
+                            const goodCount = [tempGood, humidityGood, soil1Good, soil2Good].filter(Boolean).length
+                            
+                            if (goodCount >= 3) return "매우 좋음"
+                            if (goodCount >= 2) return "보통"
+                            return "주의 필요"
+                          })()
+                        }
+                        </div>
+                        <p className={`text-xs mt-1 ${
+                          (() => {
+                            if (sensorLoading) return "text-gray-600"
+                            
+                            const temp = latestSensorData?.temperature || 0
+                            const humidity = latestSensorData?.humidity || 0
+                            const soil1 = latestSensorData?.soil_moisture_1 || 0
+                            const soil2 = latestSensorData?.soil_moisture_2 || 0
+                            
+                            const tempGood = temp >= 20 && temp <= 25
+                            const humidityGood = humidity >= 40 && humidity <= 60
+                            const soil1Good = soil1 >= 2718 && soil1 <= 3177
+                            const soil2Good = soil2 >= 2718 && soil2 <= 3177
+                            
+                            const goodCount = [tempGood, humidityGood, soil1Good, soil2Good].filter(Boolean).length
+                            
+                            if (goodCount >= 3) return "text-green-600" // 최적 - 초록
+                            if (goodCount >= 2) return "text-yellow-600" // 주의 - 노랑
+                            return "text-red-600" // 위험 - 빨간
+                          })()
+                        }`}>
+                          {(() => {
+                            if (sensorLoading) return ""
+                            
+                            const temp = latestSensorData?.temperature || 0
+                            const humidity = latestSensorData?.humidity || 0
+                            const soil1 = latestSensorData?.soil_moisture_1 || 0
+                            const soil2 = latestSensorData?.soil_moisture_2 || 0
+                            
+                            const tempGood = temp >= 20 && temp <= 25
+                            const humidityGood = humidity >= 40 && humidity <= 60
+                            const soil1Good = soil1 >= 2718 && soil1 <= 3177
+                            const soil2Good = soil2 >= 2718 && soil2 <= 3177
+                            
+                            const goodCount = [tempGood, humidityGood, soil1Good, soil2Good].filter(Boolean).length
+                            
+                            return `${goodCount}/4 항목 정상`
+                          })()
+                        }
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
 
                 {/* Event Log */}
@@ -516,6 +906,20 @@ export default function DashboardPage() {
                       <div className="text-center py-8">
                         <WifiOff className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-500">연결된 기기가 없습니다</p>
+                        {controlError && (
+                          <p className="text-xs text-red-500 mt-2">에러: {controlError}</p>
+                        )}
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={() => {
+                            console.log('🔄 제어 상태 재로드 시도')
+                            refetchControlStatus()
+                          }}
+                        >
+                          다시 시도
+                        </Button>
                       </div>
                     ) : (
                       <div className="space-y-6">
@@ -523,14 +927,19 @@ export default function DashboardPage() {
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-3">
                             <Lightbulb className="w-5 h-5 text-yellow-500" />
-                            <span className="text-sm">LED 조명</span>
+                            <div className="flex flex-col">
+                              <span className="text-sm">LED 조명</span>
+                              {componentTimers['led'] && (
+                                <span className="text-xs text-orange-600">명령 전송 중... ({componentTimers['led']}초)</span>
+                              )}
+                            </div>
                           </div>
                           <Switch
-                            checked={controlStatus?.LED || false}
+                            checked={controlStatus?.target_led_state === 'ON' || false}
                             onCheckedChange={(checked) => {
-                              handleControlChange('LED', checked ? 'ON' : 'OFF')
+                              handleControlChange('led', checked ? 'ON' : 'OFF')
                             }}
-                            disabled={controlLoading}
+                            disabled={controlLoading || componentTimers['led'] > 0}
                           />
                         </div>
 
@@ -538,14 +947,19 @@ export default function DashboardPage() {
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-3">
                             <Droplets className="w-5 h-5 text-blue-500" />
-                            <span className="text-sm">급수펌프 1</span>
+                            <div className="flex flex-col">
+                              <span className="text-sm">급수펌프 1</span>
+                              {componentTimers['pump_1'] && (
+                                <span className="text-xs text-orange-600">명령 전송 중... ({componentTimers['pump_1']}초)</span>
+                              )}
+                            </div>
                           </div>
                           <Switch
-                            checked={controlStatus?.PUMP1 || false}
+                            checked={controlStatus?.target_pump_state_1 === 'ON' || false}
                             onCheckedChange={(checked) => {
-                              handleControlChange('PUMP1', checked ? 'ON' : 'OFF')
+                              handleControlChange('pump_1', checked ? 'ON' : 'OFF')
                             }}
-                            disabled={controlLoading}
+                            disabled={controlLoading || componentTimers['pump_1'] > 0}
                           />
                         </div>
 
@@ -553,14 +967,19 @@ export default function DashboardPage() {
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-3">
                             <Droplets className="w-5 h-5 text-blue-700" />
-                            <span className="text-sm">급수펌프 2</span>
+                            <div className="flex flex-col">
+                              <span className="text-sm">급수펌프 2</span>
+                              {componentTimers['pump_2'] && (
+                                <span className="text-xs text-orange-600">명령 전송 중... ({componentTimers['pump_2']}초)</span>
+                              )}
+                            </div>
                           </div>
                           <Switch
-                            checked={controlStatus?.PUMP2 || false}
+                            checked={controlStatus?.target_pump_state_2 === 'ON' || false}
                             onCheckedChange={(checked) => {
-                              handleControlChange('PUMP2', checked ? 'ON' : 'OFF')
+                              handleControlChange('pump_2', checked ? 'ON' : 'OFF')
                             }}
-                            disabled={controlLoading}
+                            disabled={controlLoading || componentTimers['pump_2'] > 0}
                           />
                         </div>
 
@@ -568,14 +987,39 @@ export default function DashboardPage() {
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-3">
                             <Fan className="w-5 h-5 text-gray-500" />
-                            <span className="text-sm">환기팬</span>
+                            <div className="flex flex-col">
+                              <span className="text-sm">환기팬</span>
+                              {componentTimers['fan'] && (
+                                <span className="text-xs text-orange-600">명령 전송 중... ({componentTimers['fan']}초)</span>
+                              )}
+                            </div>
                           </div>
                           <Switch
-                            checked={controlStatus?.FAN || false}
+                            checked={controlStatus?.target_fan_state === 'ON' || false}
                             onCheckedChange={(checked) => {
-                              handleControlChange('FAN', checked ? 'ON' : 'OFF')
+                              handleControlChange('fan', checked ? 'ON' : 'OFF')
                             }}
-                            disabled={controlLoading}
+                            disabled={controlLoading || componentTimers['fan'] > 0}
+                          />
+                        </div>
+
+                        {/* 배수펌프 - API 지원 완료 */}
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <Droplets className="w-5 h-5 text-red-500" />
+                            <div className="flex flex-col">
+                              <span className="text-sm">배수펌프</span>
+                              {componentTimers['drain_pump'] && (
+                                <span className="text-xs text-orange-600">명령 전송 중... ({componentTimers['drain_pump']}초)</span>
+                              )}
+                            </div>
+                          </div>
+                          <Switch
+                            checked={controlStatus?.target_drain_pump_state === 'ON' || false}
+                            onCheckedChange={(checked) => {
+                              handleControlChange('drain_pump', checked ? 'ON' : 'OFF')
+                            }}
+                            disabled={controlLoading || componentTimers['drain_pump'] > 0}
                           />
                         </div>
 

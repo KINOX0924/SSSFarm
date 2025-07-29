@@ -92,11 +92,15 @@ export default function PresetsPage() {
         name: "급수펌프 1"
       },
       waterPump2: { 
-        enabled: false, 
-        startHumidity: 35,
-        endHumidity: 65,
-        name: "급수펌프 2"
-      }
+      enabled: false, 
+      startHumidity: 35,
+      endHumidity: 65,
+      name: "급수펌프 2"
+      },
+        drainPump: {
+          enabled: false,
+          name: "배수펌프"
+        }
     }
   })
 
@@ -195,18 +199,6 @@ export default function PresetsPage() {
                     {label}
                   </Button>
                 ))}
-                
-                {/* API 테스트 링크 */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => router.push('/api-test')}
-                  className="gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                  title="API 연결 테스트"
-                >
-                  <AlertCircle className="w-4 h-4" />
-                  API 테스트
-                </Button>
               </div>
 
               <Button
@@ -261,16 +253,7 @@ export default function PresetsPage() {
             </Alert>
           )}
           
-          {/* 디버그 정보 */}
-          <Alert className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              디버그: 프리셋 {presets?.length || 0}개, 기기 {devices?.length || 0}개 로드됨. 
-              로딩: {presetsLoading ? 'Y' : 'N'}, 에러: {presetsError ? 'Y' : 'N'}
-              <br />
-              사용자 ID: {getStoredUserInfo()?.id || 'N/A'}, 토큰: {getStoredToken() ? '있음' : '없음'}
-            </AlertDescription>
-          </Alert>
+
 
           {/* Tab Navigation */}
           <div className="mb-6">
@@ -313,59 +296,97 @@ export default function PresetsPage() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {devices?.map((device) => (
-                  <Card key={device.device_id} className="relative">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{device.device_name}</CardTitle>
-                        <div className="flex items-center space-x-2">
-                          {device.last_active ? (
-                            <Badge variant="outline" className="text-green-600 border-green-600">
-                              <Wifi className="w-3 h-3 mr-1" />
-                              온라인
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-red-600 border-red-600">
-                              <WifiOff className="w-3 h-3 mr-1" />
-                              오프라인
-                            </Badge>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 text-red-600"
-                            onClick={() => {
-                              setSelectedDevice(device)
-                              setIsDeleteDialogOpen(true)
-                            }}
-                            title="기기 삭제"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2 text-sm text-gray-600">
-                        <div><strong>위치:</strong> {device.location || 'N/A'}</div>
-                        <div><strong>MAC 주소:</strong> {device.device_serial}</div>
-                        <div className="flex items-center"><strong>타입:</strong> 
-                          <Badge variant="outline" className="ml-2">
-                            {device.device_type === 'local' ? '로컬' : 'API'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                
-                {(!devices || devices.length === 0) && (
-                  <div className="col-span-full text-center py-8 text-gray-500">
-                    등록된 기기가 없습니다.
+              {devicesLoading ? (
+                <div className="col-span-full">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* 로딩 스켈레톤 카드들 */}
+                    {[1, 2, 3].map((index) => (
+                      <Card key={`skeleton-${index}`} className="relative animate-pulse">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <div className="h-6 bg-gray-200 rounded w-32"></div>
+                            <div className="flex items-center space-x-2">
+                              <div className="h-6 bg-gray-200 rounded w-16"></div>
+                              <div className="h-6 w-6 bg-gray-200 rounded"></div>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <div className="h-4 bg-gray-200 rounded w-full"></div>
+                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                )}
-              </div>
+                  <div className="text-center py-6">
+                    <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-500" />
+                    <p className="text-gray-600 font-medium">기기 목록을 불러오는 중...</p>
+                    <p className="text-sm text-gray-400 mt-1">잠시만 기다려주세요 (약 10초 소요)</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {devices?.filter(device => 
+                    // HD 기기 필터링 - 기기 관리 탭에서만 제외
+                    device.device_type !== 'HD' && 
+                    !device.device_name?.toLowerCase().includes('hd')
+                  ).map((device) => (
+                    <Card key={device.device_id} className="relative">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{device.device_name}</CardTitle>
+                          <div className="flex items-center space-x-2">
+                            {device.last_active ? (
+                              <Badge variant="outline" className="text-green-600 border-green-600">
+                                <Wifi className="w-3 h-3 mr-1" />
+                                온라인
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-red-600 border-red-600">
+                                <WifiOff className="w-3 h-3 mr-1" />
+                                오프라인
+                              </Badge>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-red-600"
+                              onClick={() => {
+                                setSelectedDevice(device)
+                                setIsDeleteDialogOpen(true)
+                              }}
+                              title="기기 삭제"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2 text-sm text-gray-600">
+                          <div><strong>위치:</strong> {device.location || 'N/A'}</div>
+                          <div><strong>MAC 주소:</strong> {device.device_serial}</div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {(!devices || devices.filter(device => 
+                    device.device_type !== 'HD' && 
+                    !device.device_name?.toLowerCase().includes('hd')
+                  ).length === 0) && !devicesLoading && (
+                    <div className="col-span-full text-center py-8 text-gray-500">
+                      <div className="mb-4">
+                        <AlertCircle className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                      </div>
+                      <p className="text-lg font-medium mb-2">등록된 기기가 없습니다</p>
+                      <p className="text-sm text-gray-400">상단의 "기기 추가" 버튼을 눌러 새 기기를 등록하세요</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -379,124 +400,181 @@ export default function PresetsPage() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {presets?.map((preset) => (
-                  <Card key={preset.id} className="relative">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{preset.name}</CardTitle>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="outline" className={
-                            preset.source === 'api' 
-                              ? "text-blue-600 border-blue-600" 
-                              : "text-orange-600 border-orange-600"
-                          }>
-                            {preset.source === 'api' ? 'API' : '로컬'}
-                          </Badge>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={() => {
-                              setEditingPreset({ ...preset })
-                              setIsPresetDialogOpen(true)
-                            }}
-                          >
-                            <Edit3 className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 text-red-600"
-                            onClick={() => {
-                              setSelectedPreset(preset)
-                              setIsPresetDeleteDialogOpen(true)
-                            }}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <Lightbulb className="w-4 h-4 text-yellow-500" />
-                            <span className="text-sm">LED</span>
-                          </div>
-                          <Badge variant={preset.settings.ledLight.enabled ? "default" : "secondary"}>
-                            {preset.settings.ledLight.enabled ? "ON" : "OFF"}
-                          </Badge>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <Fan className="w-4 h-4 text-blue-500" />
-                            <span className="text-sm">환기팬</span>
-                          </div>
-                          <Badge variant={preset.settings.ventilationFan.enabled ? "default" : "secondary"}>
-                            {preset.settings.ventilationFan.enabled ? "ON" : "OFF"}
-                          </Badge>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <Droplets className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm">급수펌프</span>
-                          </div>
-                          <div className="flex space-x-1">
-                            <Badge variant={preset.settings.waterPump1.enabled ? "default" : "secondary"} className="text-xs">
-                              1
-                            </Badge>
-                            <Badge variant={preset.settings.waterPump2.enabled ? "default" : "secondary"} className="text-xs">
-                              2
-                            </Badge>
-                          </div>
-                        </div>
-
-                        {devices && devices.length > 0 && (
-                          <div className="pt-2 border-t">
-                            <p className="text-xs text-gray-500 mb-2">기기에 적용:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {devices.slice(0, 2).map((device) => (
-                                <Button
-                                  key={device.device_id}
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-6 text-xs"
-                                  onClick={async () => {
-                                    try {
-                                      await applyPreset(preset.id, device.device_id)
-                                      alert("프리셋이 기기에 적용되었습니다.")
-                                    } catch (error) {
-                                      alert("프리셋 적용에 실패했습니다.")
-                                    }
-                                  }}
-                                  disabled={preset.source === 'local'}
-                                >
-                                  {device.device_name}
-                                </Button>
-                              ))}
-                              {devices.length > 2 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{devices.length - 2}
-                                </Badge>
-                              )}
+              {presetsLoading ? (
+                <div className="col-span-full">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* 로딩 스켈레톤 카드들 */}
+                    {[1, 2, 3].map((index) => (
+                      <Card key={`preset-skeleton-${index}`} className="relative animate-pulse">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <div className="h-6 bg-gray-200 rounded w-28"></div>
+                            <div className="flex items-center space-x-2">
+                              <div className="h-6 w-6 bg-gray-200 rounded"></div>
+                              <div className="h-6 w-6 bg-gray-200 rounded"></div>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                
-                {(!presets || presets.length === 0) && (
-                  <div className="col-span-full text-center py-8 text-gray-500">
-                    등록된 프리셋이 없습니다.
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="h-4 bg-gray-200 rounded w-16"></div>
+                              <div className="h-5 bg-gray-200 rounded w-12"></div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="h-4 bg-gray-200 rounded w-20"></div>
+                              <div className="h-5 bg-gray-200 rounded w-12"></div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="h-4 bg-gray-200 rounded w-24"></div>
+                              <div className="flex space-x-1">
+                                <div className="h-5 w-6 bg-gray-200 rounded"></div>
+                                <div className="h-5 w-6 bg-gray-200 rounded"></div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                )}
-              </div>
+                  <div className="text-center py-6">
+                    <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-500" />
+                    <p className="text-gray-600 font-medium">프리셋 목록을 불러오는 중...</p>
+                    <p className="text-sm text-gray-400 mt-1">잠시만 기다려주세요 (약 10초 소요)</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {presets?.map((preset) => (
+                    <Card key={preset.id} className="relative">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{preset.name}</CardTitle>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => {
+                                setEditingPreset({ ...preset })
+                                setIsPresetDialogOpen(true)
+                              }}
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-red-600"
+                              onClick={() => {
+                                setSelectedPreset(preset)
+                                setIsPresetDeleteDialogOpen(true)
+                              }}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <Lightbulb className="w-4 h-4 text-yellow-500" />
+                              <span className="text-sm">LED</span>
+                            </div>
+                            <Badge variant={preset.settings.ledLight.enabled ? "default" : "secondary"}>
+                              {preset.settings.ledLight.enabled ? "ON" : "OFF"}
+                            </Badge>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <Fan className="w-4 h-4 text-blue-500" />
+                              <span className="text-sm">환기팬</span>
+                            </div>
+                            <Badge variant={preset.settings.ventilationFan.enabled ? "default" : "secondary"}>
+                              {preset.settings.ventilationFan.enabled ? "ON" : "OFF"}
+                            </Badge>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <Droplets className="w-4 h-4 text-blue-600" />
+                              <span className="text-sm">급수펌프</span>
+                            </div>
+                            <div className="flex space-x-1">
+                              <Badge variant={preset.settings.waterPump1.enabled ? "default" : "secondary"} className="text-xs">
+                                1
+                              </Badge>
+                              <Badge variant={preset.settings.waterPump2.enabled ? "default" : "secondary"} className="text-xs">
+                                2
+                              </Badge>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <Droplets className="w-4 h-4 text-red-500" />
+                              <span className="text-sm">배수펌프</span>
+                            </div>
+                            <Badge variant={preset.settings.drainPump?.enabled ? "default" : "secondary"}>
+                              {preset.settings.drainPump?.enabled ? "ON" : "OFF"}
+                            </Badge>
+                          </div>
+
+                          {devices && devices.length > 0 && (
+                            <div className="pt-2 border-t">
+                              <p className="text-xs text-gray-500 mb-2">기기에 적용:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {devices
+                                  .filter(device => device.device_type === 'SENSOR_ACTUATOR') // SENSOR_ACTUATOR만 필터링
+                                  .slice(0, 2)
+                                  .map((device) => (
+                                  <Button
+                                    key={device.device_id}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 text-xs"
+                                    onClick={async () => {
+                                      try {
+                                        await applyPreset(preset.id, device.device_id)
+                                        alert("프리셋이 기기에 적용되었습니다.")
+                                      } catch (error) {
+                                        alert("프리셋 적용에 실패했습니다.")
+                                      }
+                                    }}
+                                  >
+                                    {device.device_name}
+                                  </Button>
+                                ))}
+                                {devices.filter(device => device.device_type === 'SENSOR_ACTUATOR').length > 2 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{devices.filter(device => device.device_type === 'SENSOR_ACTUATOR').length - 2}
+                                  </Badge>
+                                )}
+                                {devices.filter(device => device.device_type === 'SENSOR_ACTUATOR').length === 0 && (
+                                  <p className="text-xs text-gray-400">사용 가능한 기기가 없습니다</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {(!presets || presets.length === 0) && !presetsLoading && (
+                    <div className="col-span-full text-center py-8 text-gray-500">
+                      <div className="mb-4">
+                        <Settings className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                      </div>
+                      <p className="text-lg font-medium mb-2">등록된 프리셋이 없습니다</p>
+                      <p className="text-sm text-gray-400">상단의 "프리셋 추가" 버튼을 눌러 새 설정을 만드세요</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -698,6 +776,54 @@ export default function PresetsPage() {
                       const updatedSettings = {
                         ...settings,
                         ledLight: { ...settings.ledLight, endTime: e.target.value }
+                      }
+                      if (editingPreset) {
+                        setEditingPreset({ ...editingPreset, settings: updatedSettings })
+                      } else {
+                        setNewPreset({ ...newPreset, settings: updatedSettings })
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Droplets className="w-5 h-5 text-red-500" />
+                <h3 className="text-lg font-medium">배수펌프 설정</h3>
+              </div>
+              
+              <div className="space-y-4 p-4 border rounded-lg">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="drain-pump-enabled">배수펌프 사용</Label>
+                  <Switch
+                    id="drain-pump-enabled"
+                    checked={editingPreset ? editingPreset.settings.drainPump?.enabled || false : newPreset.settings.drainPump.enabled}
+                    onCheckedChange={(checked) => {
+                      const settings = editingPreset ? editingPreset.settings : newPreset.settings
+                      const updatedSettings = {
+                        ...settings,
+                        drainPump: { ...settings.drainPump, enabled: checked }
+                      }
+                      if (editingPreset) {
+                        setEditingPreset({ ...editingPreset, settings: updatedSettings })
+                      } else {
+                        setNewPreset({ ...newPreset, settings: updatedSettings })
+                      }
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="drain-pump-name">이름</Label>
+                  <Input
+                    id="drain-pump-name"
+                    value={editingPreset ? editingPreset.settings.drainPump?.name || "배수펌프" : newPreset.settings.drainPump.name}
+                    onChange={(e) => {
+                      const settings = editingPreset ? editingPreset.settings : newPreset.settings
+                      const updatedSettings = {
+                        ...settings,
+                        drainPump: { ...settings.drainPump, name: e.target.value }
                       }
                       if (editingPreset) {
                         setEditingPreset({ ...editingPreset, settings: updatedSettings })
@@ -979,32 +1105,36 @@ export default function PresetsPage() {
                    setNewPreset({
                      name: "",
                      settings: {
-                       ledLight: { 
-                         enabled: false, 
-                         timeControl: false,
-                         lightControl: true,
-                         startTime: "06:00",
-                         endTime: "18:00",
-                         lightThreshold: 300 
-                       },
-                       ventilationFan: { 
-                         enabled: false, 
-                         startTemperature: 28,
-                         endTemperature: 22
-                       },
-                       waterPump1: { 
-                         enabled: false, 
-                         startHumidity: 40,
-                         endHumidity: 70,
-                         name: "급수펌프 1"
-                       },
-                       waterPump2: { 
-                         enabled: false, 
-                         startHumidity: 35,
-                         endHumidity: 65,
-                         name: "급수펌프 2"
+                     ledLight: { 
+                     enabled: false, 
+                     timeControl: false,
+                     lightControl: true,
+                     startTime: "06:00",
+                     endTime: "18:00",
+                     lightThreshold: 300 
+                     },
+                     ventilationFan: { 
+                     enabled: false, 
+                     startTemperature: 28,
+                     endTemperature: 22
+                     },
+                     waterPump1: { 
+                     enabled: false, 
+                     startHumidity: 40,
+                     endHumidity: 70,
+                     name: "급수펌프 1"
+                     },
+                     waterPump2: { 
+                     enabled: false, 
+                     startHumidity: 35,
+                     endHumidity: 65,
+                     name: "급수펌프 2"
+                     },
+                       drainPump: {
+                           enabled: false,
+                           name: "배수펌프"
+                         }
                        }
-                     }
                    })
                    alert("프리셋이 추가되었습니다.")
                  }
@@ -1031,15 +1161,9 @@ export default function PresetsPage() {
            <p className="text-sm text-gray-600">
              <strong>{selectedDevice?.device_name}</strong> - {selectedDevice?.location}
            </p>
-           {selectedDevice?.device_type === 'local' ? (
-             <p className="text-sm text-blue-600">
-               📝 로컬 기기는 이 브라우저에서만 삭제됩니다.
-             </p>
-           ) : (
-             <p className="text-sm text-orange-600">
-               ⚠️ API 기기는 로컬에서만 삭제되며, 서버에서는 유지됩니다.
-             </p>
-           )}
+           <p className="text-sm text-orange-600">
+             ⚠️ 기기 삭제는 현재 지원되지 않습니다.
+           </p>
          </div>
          <div className="flex justify-end space-x-2">
            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>

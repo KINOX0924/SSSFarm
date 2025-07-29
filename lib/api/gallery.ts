@@ -89,21 +89,45 @@ export function filterImagesByTimeInterval(images: PlantImage[], intervalMinutes
   return filtered
 }
 
-// 날짜 범위로 필터링
-export function filterImagesByDateRange(
+// 날짜+시간 범위로 필터링
+export function filterImagesByDateTimeRange(
   images: PlantImage[], 
   startDate?: string, 
-  endDate?: string
+  startTime?: string,
+  endDate?: string,
+  endTime?: string
 ): PlantImage[] {
   return images.filter(image => {
     const imageDate = new Date(image.captured_at)
     
-    if (startDate && imageDate < new Date(startDate)) {
-      return false
+    // 시작 날짜+시간 검사
+    if (startDate) {
+      const startDateTime = new Date(startDate)
+      if (startTime) {
+        const [hours, minutes] = startTime.split(':').map(Number)
+        startDateTime.setHours(hours, minutes, 0, 0)
+      } else {
+        startDateTime.setHours(0, 0, 0, 0) // 시작 시간이 없으면 하루 시작
+      }
+      
+      if (imageDate < startDateTime) {
+        return false
+      }
     }
     
-    if (endDate && imageDate > new Date(endDate + 'T23:59:59')) {
-      return false
+    // 종료 날짜+시간 검사
+    if (endDate) {
+      const endDateTime = new Date(endDate)
+      if (endTime) {
+        const [hours, minutes] = endTime.split(':').map(Number)
+        endDateTime.setHours(hours, minutes, 59, 999)
+      } else {
+        endDateTime.setHours(23, 59, 59, 999) // 종료 시간이 없으면 하루 끝
+      }
+      
+      if (imageDate > endDateTime) {
+        return false
+      }
     }
     
     return true

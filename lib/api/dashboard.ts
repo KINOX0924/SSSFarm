@@ -19,15 +19,44 @@ export const dashboardApi = {
 
   // 기기 제어 상태 조회
   getDeviceControlStatus: async (deviceId: number) => {
-    return await get<any>(`/devices/${deviceId}/control_status`)
+    console.log(`🔍 기기 제어 상태 조회: Device ${deviceId}`)
+    try {
+      const response = await get<any>(`/devices/${deviceId}/control_status`)
+      console.log(`✅ 제어 상태 조회 성공:`, response)
+      return response
+    } catch (error) {
+      console.error(`❌ 제어 상태 조회 실패: Device ${deviceId}`, error)
+      throw error
+    }
+  },
+
+  // 기기 제어 상태 설정 (테스트용)
+  setDeviceControlStatus: async (deviceId: number, controlData: any) => {
+    console.log(`🎛️ 기기 제어 상태 설정 시도: Device ${deviceId}`, controlData)
+    try {
+      const response = await put<any>(`/devices/${deviceId}/control_status`, controlData)
+      console.log(`✅ 제어 상태 설정 성공:`, response)
+      return response
+    } catch (error) {
+      console.error(`❌ 제어 상태 설정 실패: Device ${deviceId}`, error)
+      throw error
+    }
   },
 
   // 기기 수동 제어
   controlDevice: async (deviceId: number, component: string, command: string) => {
-    return await put<any>(`/devices/${deviceId}/manual-control`, {
-      component,
-      command
-    })
+    console.log(`🎛️ 기기 제어 시도: Device ${deviceId}, Component: ${component}, Command: ${command}`)
+    try {
+      const response = await put<any>(`/devices/${deviceId}/manual-control`, {
+        component,
+        command
+      })
+      console.log(`✅ 기기 제어 성공:`, response)
+      return response
+    } catch (error) {
+      console.error(`❌ 기기 제어 실패: Device ${deviceId}, Component: ${component}, Command: ${command}`, error)
+      throw error
+    }
   },
 
   // 사용자 프리셋 적용

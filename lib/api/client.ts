@@ -28,8 +28,9 @@ async function apiRequest<T>(
     mode: 'cors',
     credentials: 'omit',
     headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
+      'Accept': 'application/json; charset=utf-8',
+      'Accept-Charset': 'utf-8',
       ...authHeaders,
       ...options.headers,
     },
@@ -48,7 +49,19 @@ async function apiRequest<T>(
       throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`)
     }
     
-    const data = await response.json()
+    // UTF-8 인코딩으로 텍스트 읽기
+    const responseText = await response.text()
+    
+    // JSON 파싱 시 한글 처리
+    let data: T
+    try {
+      data = JSON.parse(responseText)
+    } catch (parseError) {
+      console.error('❌ JSON Parse Error:', parseError)
+      console.log('📄 Response Text:', responseText)
+      throw new Error('응답 데이터 파싱에 실패했습니다')
+    }
+    
     console.log(`✅ API Success: ${options.method || 'GET'} ${url}`)
     return data
   } catch (error) {

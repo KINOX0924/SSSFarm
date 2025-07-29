@@ -2,9 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { 
   getAllImages, 
   getDeviceImages, 
-  filterImagesByTimeInterval, 
-  filterImagesByDateRange, 
   filterImagesByDevice,
+  filterImagesByDateTimeRange,
   transformToGalleryImages,
   GalleryImage 
 } from '@/lib/api/gallery'
@@ -158,9 +157,10 @@ export function useGalleryFilters(images: GalleryImage[]) {
   const [filteredImages, setFilteredImages] = useState<GalleryImage[]>(images)
   const [filters, setFilters] = useState({
     deviceId: null as number | null,
-    timeInterval: 0, // 0 = 전체, 분 단위
     startDate: '',
+    startTime: '',
     endDate: '',
+    endTime: '',
     searchTerm: ''
   })
 
@@ -173,14 +173,9 @@ export function useGalleryFilters(images: GalleryImage[]) {
       result = filterImagesByDevice(result, filters.deviceId)
     }
 
-    // 날짜 범위 필터
-    if (filters.startDate || filters.endDate) {
-      result = filterImagesByDateRange(result, filters.startDate, filters.endDate)
-    }
-
-    // 시간 간격 필터
-    if (filters.timeInterval > 0) {
-      result = filterImagesByTimeInterval(result, filters.timeInterval)
+    // 날짜+시간 범위 필터
+    if (filters.startDate || filters.endDate || filters.startTime || filters.endTime) {
+      result = filterImagesByDateTimeRange(result, filters.startDate, filters.startTime, filters.endDate, filters.endTime)
     }
 
     // 검색어 필터 (기기 이름, 위치로 검색)
@@ -203,9 +198,10 @@ export function useGalleryFilters(images: GalleryImage[]) {
   const resetFilters = useCallback(() => {
     setFilters({
       deviceId: null,
-      timeInterval: 0,
       startDate: '',
+      startTime: '',
       endDate: '',
+      endTime: '',
       searchTerm: ''
     })
   }, [])
