@@ -64,25 +64,35 @@ def shutdown_event() :
 
 # 백그라운드 자동 제어
 # 모든 장치에 대해 주기적으로 자동 제어 로직을 실행하는 반복 함수
-def control_loop() :
-    while True :
-        # n 초 대기 후 다시 반복
-        # 타임시간 2초 -> 30초로 수정
+def control_loop():
+    while True:
         time.sleep(10)
         
-        # 매번 새로운 DB 세션을 생성하여 작업 수행
-        db = SessionLocal()
-        try :
-            # DB 에 등록된 모든 장치를 불러옴
+        # 매번 새로운 세션 생성
+        db = None
+        try:
+            db = SessionLocal()
+            # 세션 유효성 체크
+            db.execute("SELECT 1")
+            
             devices = crud.get_devices(db)
             print(f"\n[CONTROL_LOOP] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} || {len(devices)} 개 장치에 대한 제어 실행")
-            for device in devices :
-                control_logic.run_control_logic_for_device(db , device_id = device.device_id)
-        except Exception as err :
+            
+            for device in devices:
+                try:
+                    control_logic.run_control_logic_for_device(db, device_id=device.device_id)
+                except Exception as device_err:
+                    print(f"[에러] | 장치 {device.device_id} 제어 중 에러: {device_err}")
+                    continue
+                    
+        except Exception as err:
             print(f"[에러] | 백그라운드 작업 중 에러 발생 / 에러 내용 : {err}")
-        finally :
-            # 작업 종료 후 세션 닫기
-            db.close()
+        finally:
+            if db:
+                try:
+                    db.close()
+                except:
+                    pass
         
     
 # 웹소켓 연결 관리자

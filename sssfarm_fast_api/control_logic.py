@@ -125,7 +125,12 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         if override_state is not None:
             trigger_reason = "사용자 수동 작동"
             if override_state == "ON":
-                time_since_last_on = (now - last_active_time).total_seconds() if last_active_time else float('inf')
+                # None 체크 추가
+                if last_active_time is None:
+                    time_since_last_on = float('inf')
+                else:
+                    time_since_last_on = (now - last_active_time).total_seconds()
+                    
                 if time_since_last_on < (PUMP_RUN_DURATION + PUMP_COOLDOWN):
                     print(f"[경고] | 펌프 {pump_index} 쿨다운 중 : 수동 작동 불가함")
                     new_state = "OFF"
@@ -138,19 +143,24 @@ def run_control_logic_for_device(db : Session , device_id : int) :
 
         # 자동 제어 로직
         else:
-            time_since_last_on = (now - last_active_time).total_seconds() if last_active_time else float('inf')
+            # None 체크 추가
+            if last_active_time is None:
+                time_since_last_on = float('inf')
+            else:
+                time_since_last_on = (now - last_active_time).total_seconds()
 
-            # 펌프를 꺼야 하는 조건: 작동 시간이 N초를 넘었을 때
+            # 펌프를 꺼야 하는 조건
             if current_state == "ON" and time_since_last_on >= PUMP_RUN_DURATION:
                 new_state = "OFF"
                 trigger_reason = f"자동 작동 시간({PUMP_RUN_DURATION}초) 도달"
             
-            # 펌프를 켜야 하는 조건: 토양이 건조하고 쿨다운이 끝났을 때
+            # 펌프를 켜야 하는 조건 - 물통 수위 체크 추가
             elif current_state == "OFF":
                 is_cooldown = time_since_last_on < (PUMP_RUN_DURATION + PUMP_COOLDOWN)
                 is_dry = current_soil_moisture is not None and current_soil_moisture > min_soil_threshold
+                is_water_available = latest_data.water_level is not None and latest_data.water_level >= WATER_LEVEL_THRESHOLD
 
-                if not is_cooldown and is_dry:
+                if not is_cooldown and is_dry and is_water_available:
                     new_state = "ON"
                     trigger_reason = f"토양 {pump_index} 수분 부족"
         
