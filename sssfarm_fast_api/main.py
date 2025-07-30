@@ -68,13 +68,9 @@ def control_loop():
     while True:
         time.sleep(10)
         
-        # 매번 새로운 세션 생성
         db = None
         try:
             db = SessionLocal()
-            # 세션 유효성 체크
-            db.execute("SELECT 1")
-            
             devices = crud.get_devices(db)
             print(f"\n[CONTROL_LOOP] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} || {len(devices)} 개 장치에 대한 제어 실행")
             
@@ -93,7 +89,6 @@ def control_loop():
                     db.close()
                 except:
                     pass
-        
     
 # 웹소켓 연결 관리자
 # 프론트엔드에 실시간으로 센서데이터를 전달해주기 위한 클래스
