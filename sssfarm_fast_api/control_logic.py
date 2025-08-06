@@ -11,8 +11,9 @@ from . import crud , models , schemas
 WATER_LEVEL_THRESHOLD = 10
 
 # 펌프 작동 시간 및 쿨다운 설정
-PUMP_RUN_DURATION = 15 # 폄프 작동 시간
-PUMP_COOLDOWN     = 3600 # 펌프 대기 시간
+PUMP_RUN_DURATION = 15       # 폄프 작동 시간
+PUMP_COOLDOWN     = 3600     # 펌프 대기 시간
+DRAIN_PUMP_RUN_DURATION = 30 # 배수 펌프 작동 시간
 
 # 특정 기기에 대한 자동 제어 로직을 실행
 def run_control_logic_for_device(db : Session , device_id : int) :
@@ -113,13 +114,14 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         
         current_state         = getattr(device , target_state_attr)
         override_state        = getattr(device , override_state_attr)
-        last_active_time     = getattr(device , last_active_time_attr)
+        last_active_time      = getattr(device , last_active_time_attr)
         min_soil_threshold    = getattr(active_preset , min_soil_attr)
         current_soil_moisture = getattr(latest_data , soil_moisture_attr)
         
-        now = datetime.now()
-        new_state = current_state
+        now            = datetime.now()
+        new_state      = current_state
         trigger_reason = ""
+        pump_cycle_finished = False
         
         # 수동 제어 로직
         if override_state is not None:
@@ -144,23 +146,24 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         # 자동 제어 로직
         else:
             # None 체크 추가
-            if last_active_time is None:
+            if last_active_time is None :
                 time_since_last_on = float('inf')
             else:
                 time_since_last_on = (now - last_active_time).total_seconds()
 
             # 펌프를 꺼야 하는 조건
-            if current_state == "ON" and time_since_last_on >= PUMP_RUN_DURATION:
+            if current_state == "ON" and time_since_last_on >= PUMP_RUN_DURATION :
                 new_state = "OFF"
                 trigger_reason = f"자동 작동 시간({PUMP_RUN_DURATION}초) 도달"
+                pump_cycle_finished = True  # 펌프 작동이 완료되었다고 표시함
             
             # 펌프를 켜야 하는 조건 - 물통 수위 체크 추가
-            elif current_state == "OFF":
+            elif current_state == "OFF" :
                 is_cooldown = time_since_last_on < (PUMP_RUN_DURATION + PUMP_COOLDOWN)
                 is_dry = current_soil_moisture is not None and current_soil_moisture > min_soil_threshold
                 is_water_available = latest_data.water_level is not None and latest_data.water_level >= WATER_LEVEL_THRESHOLD
 
-                if not is_cooldown and is_dry and is_water_available:
+                if not is_cooldown and is_dry and is_water_available :
                     new_state = "ON"
                     trigger_reason = f"토양 {pump_index} 수분 부족"
         
@@ -175,9 +178,34 @@ def run_control_logic_for_device(db : Session , device_id : int) :
             action_type = f"급수 펌프 {pump_index} 작동 {new_state}"
             log_data = schemas.ActionLogCreate(device_id=device.device_id, action_type=action_type, action_trigger=trigger_reason)
             crud.create_action_log(db, action=log_data)
+        
+        return pump_cycle_finished
 
-    process_pump_logic(1)
-    process_pump_logic(2)
+    pump1_finished = process_pump_logic(1)
+    pump2_finished = process_pump_logic(2)
+    
+    # 배수 펌프 제어 로직
+    # 배수 펌프가 켜져 있다면, 작동 시간을 확인하고 꺼야할 지 결정
+    # 배수 펌프가 켜져 있다면, 작동 시간을 확인하고 꺼야 할지 결정합니다.
+    if device.target_drain_pump_state == "ON" :
+        # drain_pump_start_time이 설정되어 있는지 확인 (오류 방지)
+        if device.drain_pump_start_time :
+            elapsed = (datetime.now() - device.drain_pump_start_time).total_seconds()
+            if elapsed >= DRAIN_PUMP_RUN_DURATION :
+                device.target_drain_pump_state = "OFF"
+                print(f"[제어] | 배수 펌프 작동 상태를 OFF (으)로 변경합니다. (작동 시간: {int(elapsed)}초)")
+                # 로그 생성
+                log_data = schemas.ActionLogCreate(device_id=device.device_id, action_type="배수 펌프 작동 OFF", action_trigger=f"자동 작동 시간({DRAIN_PUMP_RUN_DURATION}초) 도달")
+                crud.create_action_log(db, action=log_data)
+
+    # 급수 펌프 1 또는 2가 작동을 완료했고, 현재 배수 펌프가 꺼져 있다면 배수 펌프를 켭니다.
+    elif (pump1_finished or pump2_finished) :
+        device.target_drain_pump_state = "ON"
+        device.drain_pump_start_time = datetime.now() # 배수 펌프 작동 시작 시간 기록
+        print("[제어] | 배수 펌프 작동 상태를 ON (으)로 변경합니다.")
+        # 로그 생성
+        log_data = schemas.ActionLogCreate(device_id=device.device_id, action_type="배수 펌프 작동 ON", action_trigger="급수 펌프 작동 완료")
+        crud.create_action_log(db, action=log_data)
         
     """
     # 펌프 제어 로직 함수
