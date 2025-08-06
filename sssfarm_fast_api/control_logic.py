@@ -277,7 +277,7 @@ def run_control_logic_for_device(db : Session , device_id : int) :
         #     print(f"[제어] | {device.device_name} 생장등 정지")
     
     current_minute = datetime.now().minute
-    is_photo_time  = (22 <= current_minute <= 32) or (current_minute >= 52) or (current_minute <= 2)
+    is_photo_time  = (0 <= current_minute <= 60) or (current_minute >= 60) or (current_minute <= 0)
     
     if preset_coditions_met or is_photo_time :
         auto_led_state = "ON"
