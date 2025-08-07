@@ -187,25 +187,21 @@ def run_control_logic_for_device(db : Session , device_id : int) :
     # 배수 펌프 제어 로직
     # 배수 펌프가 켜져 있다면, 작동 시간을 확인하고 꺼야할 지 결정
     # 배수 펌프가 켜져 있다면, 작동 시간을 확인하고 꺼야 할지 결정합니다.
-    if (pump1_finished or pump2_finished) and device.target_drain_pump_state == "OFF":
+    if pump1_finished or pump2_finished:
         device.target_drain_pump_state = "ON"
-        device.drain_pump_start_time = datetime.now() # 배수 펌프 작동 시작 시간 기록
-        print("[제어] | 배수 펌프 작동 상태를 ON (으)로 변경")
-        # 로그 생성
-        log_data = schemas.ActionLogCreate(device_id=device.device_id, action_type="배수 펌프 작동 ON", action_trigger="급수 펌프 작동 완료")
+        device.drain_pump_start_time = datetime.now()
+        print("[제어] | 배수 펌프 30초 타이머 시작/재시작. (트리거: 급수 펌프 작동 완료)")
+        log_data = schemas.ActionLogCreate(device_id=device.device_id, action_type="배수 펌프 타이머 시작", action_trigger="급수 펌프 작동 완료")
         crud.create_action_log(db, action=log_data)
 
-    # 다음으로, 이미 작동 중인 배수 펌프를 꺼야 할지 확인합니다.
+    # 2. 배수 펌프가 ON 상태일 때, 작동 시작 시간 기준으로 30초가 지났는지 확인하고 끕니다. (이 로직은 변경 없음)
     if device.target_drain_pump_state == "ON" :
-        # drain_pump_start_time이 설정되어 있는지 확인 (오류 방지)
         if device.drain_pump_start_time :
             elapsed = (datetime.now() - device.drain_pump_start_time).total_seconds()
             if elapsed >= DRAIN_PUMP_RUN_DURATION :
                 device.target_drain_pump_state = "OFF"
-                # drain_pump_start_time을 None으로 설정하여 다음 사이클을 준비합니다.
                 device.drain_pump_start_time = None 
-                print(f"[제어] | 배수 펌프 작동 상태를 OFF 로 변경 (작동 시간: {int(elapsed)}초)")
-                # 로그 생성
+                print(f"[제어] | 배수 펌프 작동 상태를 OFF (으)로 변경합니다. (작동 시간: {int(elapsed)}초)")
                 log_data = schemas.ActionLogCreate(device_id=device.device_id, action_type="배수 펌프 작동 OFF", action_trigger=f"자동 작동 시간({DRAIN_PUMP_RUN_DURATION}초) 도달")
                 crud.create_action_log(db, action=log_data)
                 

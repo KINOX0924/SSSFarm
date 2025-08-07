@@ -66,6 +66,8 @@ class Device(Base) :
     # 펌프가 10초만 작동하고 무조건 20초의 휴식타임을 가지도록 함
     pump_1_last_active_time = Column(DATETIME , nullable = True)
     pump_2_last_active_time = Column(DATETIME , nullable = True)
+    target_drain_pump_state = Column(String(10), nullable=False, default='OFF')
+    drain_pump_start_time   = Column(DATETIME, nullable=True)
     
     # 테이블 제약 조건
     # 기기가 user_preset_id 또는 plant_preset_id 중 어느 하나만 적용되도록 하기 위해 제약 조건을 거는 코드
